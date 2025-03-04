@@ -107,7 +107,8 @@ class NixFlake:
 
     def run_checks(self, jobs: int) -> FlakeCheckResult:
         result = subprocess.run(
-            ["nix", "flake", "check", "--print-build-logs", "-j", str(jobs)], cwd=self._directory
+            ["nix", "flake", "check", "--print-build-logs", "-j", str(jobs)],
+            cwd=self._directory,
         )
         return FlakeCheckResult(exit_code=result.returncode)
 

@@ -129,7 +129,10 @@
       );
       systemIndependent = {
         nixosModules = {
-          default = import modules/default.nix { overlay = arbeitszeitapp.overlays.default; };
+          default = import modules/default.nix {
+            overlay = arbeitszeitapp.overlays.default;
+            arbeitszeitapp_repo = arbeitszeitapp;
+          };
         };
       };
     in
