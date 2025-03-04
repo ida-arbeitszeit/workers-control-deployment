@@ -1,4 +1,7 @@
-{ overlay }:
+{
+  overlay,
+  arbeitszeitapp_repo,
+}:
 {
   config,
   lib,
@@ -47,6 +50,46 @@ let
     MAIL_USE_TLS = ${if cfg.emailEncryptionType == "tls" then "True" else "False"}
     MAIL_USE_SSL = ${if cfg.emailEncryptionType == "ssl" then "True" else "False"}
   '';
+  alembicFile = pkgs.writeText "alembic.ini" ''
+    [alembic]
+    script_location = ${arbeitszeitapp_repo}/arbeitszeit_flask/migrations
+    prepend_sys_path = ${arbeitszeitapp_repo}
+    version_path_separator = os
+
+    [loggers]
+    keys = root,sqlalchemy,alembic
+
+    [handlers]
+    keys = console
+
+    [formatters]
+    keys = generic
+
+    [logger_root]
+    level = WARN
+    handlers = console
+    qualname =
+
+    [logger_sqlalchemy]
+    level = WARN
+    handlers =
+    qualname = sqlalchemy.engine
+
+    [logger_alembic]
+    level = INFO
+    handlers =
+    qualname = alembic
+
+    [handler_console]
+    class = StreamHandler
+    args = (sys.stderr,)
+    level = NOTSET
+    formatter = generic
+
+    [formatter_generic]
+    format = %(levelname)-5.5s [%(name)s] %(message)s
+    datefmt = %H:%M:%S
+  '';
   configFile = pkgs.writeText "arbeitszeitapp.cfg" ''
     import secrets
     import json
@@ -69,9 +112,31 @@ let
     FORCE_HTTPS = False
     SERVER_NAME = "${cfg.hostName}";
     AUTO_MIGRATE = True
+    ALEMBIC_CONFIGURATION_FILE = "${alembicFile}"
     ${mailConfigSection}
     ${if cfg.profilingEnabled then profilingConfigSection else ""}
   '';
+
+  alembicCommand = pkgs.writeShellApplication {
+    name = "alembic-command";
+    runtimeInputs = [
+      (pkgs.python3.withPackages (p: [
+        p.alembic
+        p.flask
+        p.flask-talisman
+        p.jinja2
+        p.flask-babel
+        p.flask-login
+        p.flask-wtf
+        p.python-dateutil
+        p.psycopg2
+      ]))
+    ];
+    text = ''
+      ARBEITSZEITAPP_DATABASE_URI=${databaseUri} ALEMBIC_CONFIG=${alembicFile} alembic "$@"
+    '';
+  };
+
   manageCommand = pkgs.writeShellApplication {
     name = "arbeitszeitapp-manage";
     runtimeInputs = [
@@ -144,7 +209,10 @@ in
   };
   config = lib.mkIf cfg.enable {
     nixpkgs.overlays = [ overlay ];
-    environment.systemPackages = [ manageCommand ];
+    environment.systemPackages = [
+      manageCommand
+      alembicCommand
+    ];
     services.postgresql = {
       enable = true;
       ensureDatabases = [ user ];
