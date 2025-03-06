@@ -131,7 +131,6 @@
         nixosModules = {
           default = import modules/default.nix {
             overlay = arbeitszeitapp.overlays.default;
-            arbeitszeitapp_repo = arbeitszeitapp;
           };
         };
       };
