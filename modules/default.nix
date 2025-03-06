@@ -216,21 +216,10 @@ in
       enable = true;
       ensureDatabases = [ user ];
       ensureUsers = [
-        (
-          {
-            name = user;
-          }
-          // (
-            if config.system.nixos.release == "23.05" then
-              {
-                ensurePermissions = {
-                  "DATABASE ${user}" = "ALL PRIVILEGES";
-                };
-              }
-            else
-              { ensureDBOwnership = true; }
-          )
-        )
+        {
+          name = user;
+          ensureDBOwnership = true;
+        }
       ];
     };
     services.nginx = {
