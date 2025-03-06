@@ -1,6 +1,5 @@
 {
   overlay,
-  arbeitszeitapp_repo,
 }:
 {
   config,
@@ -52,8 +51,7 @@ let
   '';
   alembicFile = pkgs.writeText "alembic.ini" ''
     [alembic]
-    script_location = ${arbeitszeitapp_repo}/arbeitszeit_flask/migrations
-    prepend_sys_path = ${arbeitszeitapp_repo}
+    script_location = arbeitszeit_flask:migrations
     version_path_separator = os
 
     [loggers]
@@ -130,6 +128,7 @@ let
         p.flask-wtf
         p.python-dateutil
         p.psycopg2
+        p.arbeitszeitapp
       ]))
     ];
     text = ''
