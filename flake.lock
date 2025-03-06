@@ -126,18 +126,18 @@
         "type": "github"
       }
     },
-    "nixpkgs-24-05": {
+    "nixpkgs-24-11": {
       "locked": {
-        "lastModified": 1735563628,
-        "narHash": "sha256-OnSAY7XDSx7CtDoqNh8jwVwh4xNL/2HaJxGjryLWzX8=",
+        "lastModified": 1741048562,
+        "narHash": "sha256-W4YZ3fvWZiFYYyd900kh8P8wU6DHSiwaH0j4+fai1Sk=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "b134951a4c9f3c995fd7be05f3243f8ecd65d798",
+        "rev": "6af28b834daca767a7ef99f8a7defa957d0ade6f",
         "type": "github"
       },
       "original": {
         "owner": "NixOS",
-        "ref": "nixos-24.05",
+        "ref": "nixos-24.11",
         "repo": "nixpkgs",
         "type": "github"
       }
@@ -178,7 +178,7 @@
       "inputs": {
         "arbeitszeitapp": "arbeitszeitapp",
         "flake-utils": "flake-utils_3",
-        "nixpkgs-24-05": "nixpkgs-24-05",
+        "nixpkgs-24-11": "nixpkgs-24-11",
         "nixpkgs-unstable": "nixpkgs-unstable"
       }
     },
