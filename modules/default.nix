@@ -120,13 +120,6 @@ let
     runtimeInputs = [
       (pkgs.python3.withPackages (p: [
         p.alembic
-        p.flask
-        p.flask-talisman
-        p.jinja2
-        p.flask-babel
-        p.flask-login
-        p.flask-wtf
-        p.python-dateutil
         p.psycopg2
         p.arbeitszeitapp
       ]))
