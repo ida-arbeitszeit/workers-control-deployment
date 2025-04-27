@@ -8,11 +8,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1745325132,
-        "narHash": "sha256-Jixreug/vmB7P/btYOdD+DeCcrjYenvK6bE+0kztSko=",
+        "lastModified": 1745737833,
+        "narHash": "sha256-hWjis8loC+WOWC+F8QZRuxx4ge9w564a6YT58Dz7vhg=",
         "owner": "ida-arbeitszeit",
         "repo": "arbeitszeitapp",
-        "rev": "9f25cf97437bc9584409d43ef575e01a823373cf",
+        "rev": "eb2f15d185dd3961a7f9c9ce8a2186a46fde419f",
         "type": "github"
       },
       "original": {
@@ -144,11 +144,11 @@
     },
     "nixpkgs-unstable": {
       "locked": {
-        "lastModified": 1744932701,
-        "narHash": "sha256-fusHbZCyv126cyArUwwKrLdCkgVAIaa/fQJYFlCEqiU=",
+        "lastModified": 1745526057,
+        "narHash": "sha256-ITSpPDwvLBZBnPRS2bUcHY3gZSwis/uTe255QgMtTLA=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "b024ced1aac25639f8ca8fdfc2f8c4fbd66c48ef",
+        "rev": "f771eb401a46846c1aebd20552521b233dd7e18b",
         "type": "github"
       },
       "original": {
