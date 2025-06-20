@@ -1,0 +1,45 @@
+services:
+  arbeitszeitapp:
+    image: arbeitszeitapp:latest
+    environment:
+      FLASK_APP: arbeitszeit_flask.wsgi:app
+      ARBEITSZEITAPP_CONFIGURATION_PATH: /app/arbeitszeitapp.cfg
+      MPLCONFIGDIR: /app
+      MAIL_CONFIG_PATH: /app/mailconfig.json
+      PROFILING_CONFIG_PATH: /app/profiling.json
+      SERVER_NAME: ${SERVER_NAME}
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db
+    volumes:
+      - arbeitszeitapp-data:/app
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - arbeitszeitapp
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U arbeitszeitapp"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+volumes:
+  arbeitszeitapp-data:
+  postgres-data:

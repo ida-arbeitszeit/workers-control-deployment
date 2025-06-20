@@ -1,7 +1,7 @@
 {
   description = "Implements a module for running arbeitszeitapp";
   inputs = {
-    arbeitszeitapp.url = "github:ida-arbeitszeit/arbeitszeitapp";
+    arbeitszeitapp.url = "path:/Users/petscho/arbeitszeitapp";
     nixpkgs-24-11.url = "github:NixOS/nixpkgs/nixos-24.11";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
@@ -16,7 +16,7 @@
       flake-utils,
     }:
     let
-      systemDependent = flake-utils.lib.eachSystem [ "x86_64-linux" ] (
+      systemDependent = flake-utils.lib.eachSystem [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" ] (
         system:
         let
           pkgs-unstable = import nixpkgs-unstable { inherit system; };
@@ -113,6 +113,7 @@
               isort
             ]
           );
+          dockerImage = import ./modules/docker-image.nix { pkgs = pkgs-unstable; };
         in
         {
           devShells = {
@@ -125,6 +126,9 @@
             };
           };
           checks = makeTestMatrix testCases;
+          packages = {
+            dockerImage = dockerImage;
+          };
         }
       );
       systemIndependent = {

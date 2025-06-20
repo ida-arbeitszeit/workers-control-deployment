@@ -1,0 +1,75 @@
+services:
+  nginx-proxy:
+    image: jwilder/nginx-proxy:alpine
+    container_name: nginx-proxy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - nginx_certs:/etc/nginx/certs:rw
+      - nginx_vhost:/etc/nginx/vhost.d
+      - nginx_html:/usr/share/nginx/html
+    environment:
+      - ENABLE_IPV6=true
+      - SERVER_NAME=${SERVER_NAME}
+    depends_on:
+      - arbeitszeitapp
+  letsencrypt:
+    image: jrcs/letsencrypt-nginx-proxy-companion
+    container_name: nginx-proxy-acme
+    restart: always
+    environment:
+      - NGINX_PROXY_CONTAINER=nginx-proxy
+      - DEFAULT_EMAIL=${DEFAULT_EMAIL}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - nginx_certs:/etc/nginx/certs:rw
+      - nginx_vhost:/etc/nginx/vhost.d
+      - nginx_html:/usr/share/nginx/html
+    depends_on:
+      - nginx-proxy
+  arbeitszeitapp:
+    image: arbeitszeitapp:latest
+    environment:
+      FLASK_APP: arbeitszeit_flask.wsgi:app
+      ARBEITSZEITAPP_CONFIGURATION_PATH: /app/arbeitszeitapp.cfg
+      MPLCONFIGDIR: /app
+      MAIL_CONFIG_PATH: /app/mailconfig.json
+      PROFILING_CONFIG_PATH: /app/profiling.json
+      DATABASE_URL: ${DATABASE_URL}
+      SERVER_NAME: ${SERVER_NAME}
+      VIRTUAL_HOST: ${SERVER_NAME}
+      LETSENCRYPT_HOST: ${SERVER_NAME}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL}
+    depends_on:
+      - db
+    volumes:
+      - ../mailconfig.json:/app/mailconfig.json:ro
+      - ../profiling.json:/app/profiling.json:ro
+      - arbeitszeitapp-data:/app
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U arbeitszeitapp"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+volumes:
+  arbeitszeitapp-data:
+  postgres-data:
+  nginx_certs:
+  nginx_vhost:
+  nginx_html:

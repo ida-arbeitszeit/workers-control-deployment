@@ -1,0 +1,52 @@
+services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx-https.conf.template:/etc/nginx/nginx.conf.template:ro
+      - ../certs:/etc/nginx/certs:ro
+    environment:
+      - SERVER_NAME=${SERVER_NAME}
+    command: /bin/sh -c "envsubst < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
+    depends_on:
+      - arbeitszeitapp
+  arbeitszeitapp:
+    image: arbeitszeitapp:latest
+    environment:
+      FLASK_APP: arbeitszeit_flask.wsgi:app
+      ARBEITSZEITAPP_CONFIGURATION_PATH: /app/arbeitszeitapp.cfg
+      MPLCONFIGDIR: /app
+      MAIL_CONFIG_PATH: /app/mailconfig.json
+      PROFILING_CONFIG_PATH: /app/profiling.json
+      # Ensure to set this environment variables in your .env file or directly in the environment"}"
+      DATABASE_URL: ${DATABASE_URL}
+      SERVER_NAME: ${SERVER_NAME}
+    depends_on:
+      - db
+    volumes:
+      - ../mailconfig.json:/app/mailconfig.json:ro
+      - ../profiling.json:/app/profiling.json:ro
+      - arbeitszeitapp-data:/app
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U arbeitszeitapp"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+volumes:
+  arbeitszeitapp-data:
+  postgres-data:

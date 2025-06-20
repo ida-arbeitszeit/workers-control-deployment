@@ -8,17 +8,14 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1748090427,
-        "narHash": "sha256-uDVG7cbdQOoDrLiZnXBFDHgNv+Jg8G9npSoWDvLlJW8=",
-        "owner": "ida-arbeitszeit",
-        "repo": "arbeitszeitapp",
-        "rev": "54a9fae3a139d605dcbb59f8aa6cd2371d956d5d",
-        "type": "github"
+        "lastModified": 1750435398,
+        "narHash": "sha256-aD0FKuA0WHVHIG2YKWU4KNd9qY7lhL+5x6GGBNHFGvs=",
+        "path": "/Users/petscho/arbeitszeitapp",
+        "type": "path"
       },
       "original": {
-        "owner": "ida-arbeitszeit",
-        "repo": "arbeitszeitapp",
-        "type": "github"
+        "path": "/Users/petscho/arbeitszeitapp",
+        "type": "path"
       }
     },
     "flake-utils": {
