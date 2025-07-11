@@ -62,7 +62,29 @@ check_requirements() {
   # Check for arbeitszeitapp Docker image
   if ! docker image inspect arbeitszeitapp:latest &> /dev/null; then
     echo "arbeitszeitapp:latest Docker image not found. Building with Nix..."
-    if ! nix --extra-experimental-features nix-command --extra-experimental-features flakes build .#dockerImage; then
+    # Detect host architecture and OS for nix build --system
+    NIX_SYSTEM=""
+    uname_s=$(uname -s)
+    uname_m=$(uname -m)
+    if [[ "$uname_s" == "Linux" ]]; then
+      if [[ "$uname_m" == "x86_64" ]]; then
+        NIX_SYSTEM="x86_64-linux"
+      elif [[ "$uname_m" == "aarch64" || "$uname_m" == "arm64" ]]; then
+        NIX_SYSTEM="aarch64-linux"
+      fi
+    elif [[ "$uname_s" == "Darwin" ]]; then
+      if [[ "$uname_m" == "arm64" ]]; then
+        NIX_SYSTEM="aarch64-linux"
+      elif [[ "$uname_m" == "x86_64" ]]; then
+        NIX_SYSTEM="x86_64-darwin"
+      fi
+    fi
+    if [[ -z "$NIX_SYSTEM" ]]; then
+      echo "ERROR: Could not detect host architecture for nix build. Please build the Docker image manually."
+      return 1
+    fi
+    echo "Detected host system: $NIX_SYSTEM"
+    if ! nix --extra-experimental-features nix-command --extra-experimental-features flakes build .#dockerImage --system "$NIX_SYSTEM"; then
       echo "ERROR: nix build failed. Please check your Nix setup."
       return 1
     fi

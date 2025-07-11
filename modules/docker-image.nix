@@ -1,6 +1,7 @@
-{ pkgs }:
+{ pkgs, overlay }:
 let
-  alembicFile = pkgs.writeText "alembic.ini" ''
+  pkgs' = import pkgs.path { overlays = [ overlay ]; inherit (pkgs) system; };
+  alembicFile = pkgs'.writeText "alembic.ini" ''
     [alembic]
     script_location = arbeitszeit_flask:migrations
     version_path_separator = os
@@ -39,7 +40,7 @@ let
     format = %(levelname)-5.5s [%(name)s] %(message)s
     datefmt = %H:%M:%S
   '';
-  configFile = pkgs.writeText "arbeitszeitapp.cfg" ''
+  configFile = pkgs'.writeText "arbeitszeitapp.cfg" ''
     import secrets
     import json
     import os
@@ -65,14 +66,14 @@ let
     MAIL_CONFIG_PATH = os.environ.get("MAIL_CONFIG_PATH", "/app/mailconfig.json")
     PROFILING_CONFIG_PATH = os.environ.get("PROFILING_CONFIG_PATH", "/app/profiling.json")
   '';
-  manageCommand = pkgs.writeShellApplication {
+  manageCommand = pkgs'.writeShellApplication {
     name = "arbeitszeitapp-manage";
     runtimeInputs = [
-      (pkgs.python3.withPackages (p: [
+      (pkgs'.python3.withPackages (p: [
         p.arbeitszeitapp
         p.psycopg2
         p.flask
-        p.flask_profiler
+        p.flask-profiler
       ]))
     ];
     text = ''
@@ -83,10 +84,10 @@ let
           flask "$@"
     '';
   };
-  alembicCommand = pkgs.writeShellApplication {
+  alembicCommand = pkgs'.writeShellApplication {
     name = "alembic-command";
     runtimeInputs = [
-      (pkgs.python3.withPackages (p: [
+      (pkgs'.python3.withPackages (p: [
         p.alembic
         p.psycopg2
         p.arbeitszeitapp
@@ -97,7 +98,7 @@ let
     '';
 };
 in
-pkgs.dockerTools.buildImage {
+pkgs'.dockerTools.buildImage {
   name = "arbeitszeitapp";
   tag = "latest";
   config = {
@@ -111,30 +112,45 @@ pkgs.dockerTools.buildImage {
       "PROFILING_CONFIG_PATH=/app/profiling.json"
     ];
     ExposedPorts = { "5000/tcp" = {}; };
-    # Add a non-root user for better security
-    user = "arbeitszeitapp";
+    users = [
+      {
+        name = "arbeitszeitapp";
+        uid = 1000;
+        gid = 1000;
+        home = "/app";
+      }
+    ];
+    groups = [
+      {
+        name = "arbeitszeitapp";
+        gid = 1000;
+      }
+    ];
   };
-  contents = [
-    (pkgs.python3.withPackages (p: [
-      p.arbeitszeitapp
-      p.psycopg2
-      p.flask
-      p.flask_profiler
-      p.alembic
-      p.uwsgi
-    ]))
-    pkgs.coreutils
-    pkgs.curl  # Add curl for healthchecks
-    manageCommand
-    alembicCommand
-  ];
-  # Add a non-root user and group for the container
-  extraCommands = ''
-    mkdir -p $out/app
-    cp ${configFile} $out/app/arbeitszeitapp.cfg
-    cp ${alembicFile} $out/app/alembic.ini
-    addgroup -g 1000 arbeitszeitapp
-    adduser -D -u 1000 -G arbeitszeitapp -h /app arbeitszeitapp
-    chown -R 1000:1000 $out/app
-  '';
+  copyToRoot = pkgs'.buildEnv {
+    name = "arbeitszeitapp-rootfs";
+    paths = [
+      (pkgs'.python3.withPackages (p: [
+        p.arbeitszeitapp
+        p.psycopg2
+        p.flask
+        p.flask-profiler
+        p.alembic
+      ]))
+      pkgs'.uwsgi
+      pkgs'.coreutils
+      pkgs'.curl  # Add curl for healthchecks
+      manageCommand
+      alembicCommand
+      (pkgs'.runCommand "arbeitszeitapp-cfg" {} ''
+        mkdir -p $out/app
+        cp ${configFile} $out/app/arbeitszeitapp.cfg
+        cp ${alembicFile} $out/app/alembic.ini
+      '')
+      (pkgs'.runCommand "symlink-uwsgi" { buildInputs = [ pkgs'.coreutils ]; } ''
+        mkdir -p $out/bin
+        ln -s ${pkgs'.uwsgi}/bin/uwsgi $out/bin/uwsgi
+      '')
+    ];
+  };
 }
