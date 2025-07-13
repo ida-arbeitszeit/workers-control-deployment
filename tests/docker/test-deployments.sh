@@ -1,6 +1,43 @@
 #!/usr/bin/env bash
 # test-deployments.sh: Automated test for all deployment scenarios
+#
+# Usage: ./test-deployments.sh [--multiarch] [--help]
+#
+# Options:
+#   --multiarch    Build multiarch Docker images instead of single-arch
+#   --help         Show help message
+#
+# This script tests all deployment modes (http, https, letsencrypt) by:
+# 1. Building the Docker image if not present
+# 2. Starting each deployment mode
+# 3. Running integration tests
+# 4. Cleaning up resources
+#
 set -euo pipefail
+
+# Parse command line arguments
+MULTIARCH_BUILD=false
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --multiarch)
+      MULTIARCH_BUILD=true
+      shift
+      ;;
+    -h|--help)
+      echo "Usage: $0 [--multiarch] [--help]"
+      echo
+      echo "Options:"
+      echo "  --multiarch    Build multiarch Docker images instead of single-arch"
+      echo "  --help         Show this help message"
+      exit 0
+      ;;
+    *)
+      echo "Unknown option $1"
+      echo "Use --help for usage information"
+      exit 1
+      ;;
+  esac
+done
 
 # --- Check Required Tools and Setup ---
 check_requirements() {
@@ -61,37 +98,23 @@ check_requirements() {
   
   # Check for arbeitszeitapp Docker image
   if ! docker image inspect arbeitszeitapp:latest &> /dev/null; then
-    echo "arbeitszeitapp:latest Docker image not found. Building with Nix..."
-    # Detect host architecture and OS for nix build --system
-    NIX_SYSTEM=""
-    uname_s=$(uname -s)
-    uname_m=$(uname -m)
-    if [[ "$uname_s" == "Linux" ]]; then
-      if [[ "$uname_m" == "x86_64" ]]; then
-        NIX_SYSTEM="x86_64-linux"
-      elif [[ "$uname_m" == "aarch64" || "$uname_m" == "arm64" ]]; then
-        NIX_SYSTEM="aarch64-linux"
+    echo "arbeitszeitapp:latest Docker image not found. Building with run-deployment.sh..."
+    
+    # Check if user wants to build multiarch
+    if [[ "$MULTIARCH_BUILD" == "true" ]]; then
+      echo "Building multiarch Docker images..."
+      if ! (cd "$script_dir/../.." && ./run-deployment.sh build-multiarch); then
+        echo "ERROR: multiarch build failed. Please check your Docker and Nix setup."
+        return 1
       fi
-    elif [[ "$uname_s" == "Darwin" ]]; then
-      if [[ "$uname_m" == "arm64" ]]; then
-        NIX_SYSTEM="aarch64-linux"
-      elif [[ "$uname_m" == "x86_64" ]]; then
-        NIX_SYSTEM="x86_64-darwin"
+    else
+      echo "Building single-arch Docker image..."
+      if ! (cd "$script_dir/../.." && ./run-deployment.sh build); then
+        echo "ERROR: single-arch build failed. Please check your Docker and Nix setup."
+        return 1
       fi
     fi
-    if [[ -z "$NIX_SYSTEM" ]]; then
-      echo "ERROR: Could not detect host architecture for nix build. Please build the Docker image manually."
-      return 1
-    fi
-    echo "Detected host system: $NIX_SYSTEM"
-    if ! nix --extra-experimental-features nix-command --extra-experimental-features flakes build .#dockerImage --system "$NIX_SYSTEM"; then
-      echo "ERROR: nix build failed. Please check your Nix setup."
-      return 1
-    fi
-    if ! docker load < result; then
-      echo "ERROR: docker load failed. Please check the build output."
-      return 1
-    fi
+    
     echo "Successfully built and loaded arbeitszeitapp:latest Docker image."
   fi
   
@@ -100,6 +123,14 @@ check_requirements() {
 }
 
 # Run the requirements check
+echo "Starting deployment tests..."
+if [[ "$MULTIARCH_BUILD" == "true" ]]; then
+  echo "Mode: Multiarch Docker build enabled"
+else
+  echo "Mode: Single-arch Docker build (use --multiarch for multiarch)"
+fi
+echo
+
 check_requirements || exit 1
 
 # Create profiling credentials file

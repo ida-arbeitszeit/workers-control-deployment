@@ -10,7 +10,15 @@
   outputs = { self, nixpkgs-24-11, nixpkgs-unstable, arbeitszeitapp, flake-utils, ... }:
     let
       lib = nixpkgs-unstable.lib;
-      systems = [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" ];
+      systems = [ "x86_64-linux" "aarch64-linux" ];
+      
+      # Helper function to build Docker image for any system
+      buildDockerImage = system: import ./modules/docker-image.nix {
+        pkgs = import nixpkgs-unstable { inherit system; };
+        overlay = arbeitszeitapp.overlays.default;
+        inherit system;
+      };
+      
       perSystem = system: let
         pkgs-unstable = import nixpkgs-unstable { inherit system; };
         makeSimpleTest =
@@ -107,10 +115,7 @@
           ]
         );
       in {
-        dockerImage = import ./modules/docker-image.nix {
-          pkgs = pkgs-unstable;
-          overlay = arbeitszeitapp.overlays.default;
-        };
+        dockerImage = buildDockerImage system;
         devShell = pkgs-unstable.mkShell {
           packages = [ pythonEnv pkgs-unstable.nixfmt-rfc-style pkgs-unstable.gh ];
         };

@@ -1,6 +1,6 @@
-{ pkgs, overlay }:
+{ pkgs, overlay, system ? pkgs.system }:
 let
-  pkgs' = import pkgs.path { overlays = [ overlay ]; inherit (pkgs) system; };
+  pkgs' = import pkgs.path { overlays = [ overlay ]; inherit system; };
   alembicFile = pkgs'.writeText "alembic.ini" ''
     [alembic]
     script_location = arbeitszeit_flask:migrations
