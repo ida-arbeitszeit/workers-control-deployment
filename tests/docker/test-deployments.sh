@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # test-deployments.sh: Automated test for all deployment scenarios
 #
-# Usage: ./test-deployments.sh [--multiarch] [--help]
+# Usage: ./test-deployments.sh [--multiarch] [--modes MODE1,MODE2...] [--help]
 #
 # Options:
 #   --multiarch    Build multiarch Docker images instead of single-arch
+#   --modes        Comma-separated list of deployment modes to test (http,https,letsencrypt)
+#                  Default: all modes are tested
 #   --help         Show help message
 #
 # This script tests all deployment modes (http, https, letsencrypt) by:
@@ -17,18 +19,32 @@ set -euo pipefail
 
 # Parse command line arguments
 MULTIARCH_BUILD=false
+DEPLOYMENT_MODES=""
 while [[ $# -gt 0 ]]; do
   case $1 in
     --multiarch)
       MULTIARCH_BUILD=true
       shift
       ;;
+    --modes)
+      DEPLOYMENT_MODES="$2"
+      shift 2
+      ;;
     -h|--help)
-      echo "Usage: $0 [--multiarch] [--help]"
+      echo "Usage: $0 [--multiarch] [--modes MODE1,MODE2...] [--help]"
       echo
       echo "Options:"
       echo "  --multiarch    Build multiarch Docker images instead of single-arch"
+      echo "  --modes        Comma-separated list of deployment modes to test"
+      echo "                 Available modes: http, https, letsencrypt"
+      echo "                 Default: all modes are tested"
       echo "  --help         Show this help message"
+      echo
+      echo "Examples:"
+      echo "  $0                           # Test all modes"
+      echo "  $0 --modes http              # Test only HTTP mode"
+      echo "  $0 --modes http,https        # Test HTTP and HTTPS modes"
+      echo "  $0 --multiarch --modes https # Test HTTPS with multiarch build"
       exit 0
       ;;
     *)
@@ -204,7 +220,24 @@ EOF
 echo "-> Created $PROFILING_FILE with test credentials"
 
 # List of deployment modes to test
-deployment_modes=(http https letsencrypt)
+if [[ -n "$DEPLOYMENT_MODES" ]]; then
+  # Parse comma-separated modes from CLI argument
+  IFS=',' read -ra deployment_modes <<< "$DEPLOYMENT_MODES"
+  # Validate each mode
+  valid_modes=("http" "https" "letsencrypt")
+  for mode in "${deployment_modes[@]}"; do
+    mode=$(echo "$mode" | xargs) # Trim whitespace
+    if [[ ! " ${valid_modes[*]} " =~ " ${mode} " ]]; then
+      echo "ERROR: Invalid deployment mode '$mode'. Valid modes are: ${valid_modes[*]}"
+      exit 1
+    fi
+  done
+  echo "Testing selected modes: ${deployment_modes[*]}"
+else
+  # Default: test all modes
+  deployment_modes=(http https letsencrypt)
+  echo "Testing all deployment modes: ${deployment_modes[*]}"
+fi
 
 # --- Helper Functions ---
 
