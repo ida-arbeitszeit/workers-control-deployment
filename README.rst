@@ -44,6 +44,30 @@ Now, edit the `.env` file to set your `SERVER_NAME`, database credentials, and e
 
 A helper script `run-deployment.sh` is provided to simplify running each scenario.
 
+**Deployment Script Usage:**
+
+.. code-block:: bash
+
+   # Start deployments
+   ./run-deployment.sh up http          # HTTP mode
+   ./run-deployment.sh up https         # HTTPS mode
+   ./run-deployment.sh up letsencrypt   # Let's Encrypt mode
+   
+   # Stop deployments
+   ./run-deployment.sh down http        # Stop HTTP mode
+   ./run-deployment.sh down https       # Stop HTTPS mode
+   ./run-deployment.sh down letsencrypt # Stop Let's Encrypt mode
+   
+   # Build Docker images
+   ./run-deployment.sh build                    # Build for current architecture
+   ./run-deployment.sh build x86_64-linux      # Build for x86_64
+   ./run-deployment.sh build aarch64-linux     # Build for ARM64
+   ./run-deployment.sh build-multiarch         # Build multiarch (both x86_64 and ARM64)
+   
+   # Build and push to registry
+   ./run-deployment.sh build x86_64-linux docker.io/myuser/app:v1.0
+   ./run-deployment.sh build-multiarch docker.io/myuser/app:v1.0
+
 1. **HTTP only (for local development)**
    - This is the simplest setup, serving your application over HTTP without SSL.
    - Command to start:
@@ -96,10 +120,11 @@ All deployment modes include these core services:
 
 **Application Service (arbeitszeitapp)**
   - Main application container built from Nix
-  - uWSGI server serving the Flask application
+  - Flask development server with debug mode support
   - Automatic database migrations on startup
   - Health checks via HTTP endpoints
   - Volume mounts for configuration and data
+  - Dynamic profiling configuration via environment variables
 
 **Reverse Proxy (nginx)**
   - Handles SSL termination and static file serving
@@ -117,7 +142,7 @@ This mode uses the following Docker Compose files:
 
 Services deployed:
 - PostgreSQL database on internal network
-- Application container with uWSGI
+- Application container with Flask development server
 - Nginx reverse proxy serving HTTP on port 80
 
 .. code-block:: bash
@@ -184,22 +209,44 @@ All modes use the same ``.env`` file for configuration:
    
    # Let's Encrypt configuration (for letsencrypt mode)
    LETSENCRYPT_EMAIL=admin@your-domain.com
+   
+   # Profiling configuration (optional)
+   PROFILING_ENABLED=false
+   PROFILING_AUTH_ENABLED=false
+   PROFILING_USERNAME=admin
+   PROFILING_PASSWORD=your_profiling_password
+   PROFILING_ENDPOINT=profiling
+
+**Profiling Configuration**
+
+The application includes Flask-profiler integration for performance monitoring. Profiling is configured entirely via environment variables:
+
+- **PROFILING_ENABLED**: Enable/disable profiling (default: false)
+- **PROFILING_AUTH_ENABLED**: Enable basic authentication for profiling endpoint (default: false)
+- **PROFILING_USERNAME**: Username for profiling endpoint access
+- **PROFILING_PASSWORD**: Password for profiling endpoint access
+- **PROFILING_ENDPOINT**: URL path for profiling interface (default: "profiling")
+
+When enabled, profiling data is accessible at ``http://your-domain.com/profiling`` (or your configured endpoint path). The profiling configuration is generated dynamically at runtime, eliminating the need for static configuration files.
 
 **Docker Image Building**
 
 The application Docker image is built using Nix and contains:
 
 - Python application with all dependencies
-- uWSGI application server
+- Flask development server (with debug mode support)
 - Database migration tools (Alembic)
 - Configuration management utilities
 - Health check endpoints
+- Flask-profiler integration for performance monitoring
+
+The profiling system is configured via environment variables and generates configuration dynamically at runtime, eliminating the need for static configuration files.
 
 Build options:
 
 .. code-block:: bash
 
-   # Single architecture (current system)
+   # Single architecture (detects current system architecture)
    ./run-deployment.sh build
    
    # Specific architecture
@@ -280,11 +327,15 @@ If you encounter "Undefined error: 0" or similar cross-compilation failures:
 
 If cross-compilation continues to fail, consider:
 
-- Using a Linux VM or container for building
+- Using a Linux VM or container for building (recommended for reliable builds)
 - Setting up CI/CD pipelines (GitHub Actions, etc.)
 - Building on a Linux machine and pushing to a registry
 - Using pre-built images from a registry
 - Configuring remote Linux builders in Nix configuration
+
+**Recommended Approach for macOS Users:**
+
+The most reliable approach for macOS users is to use a Linux VM (aarch64 or x86_64) for building Docker images. This avoids cross-compilation issues entirely and provides consistent build results.
 
 **Production Deployment Checklist**
 
@@ -314,6 +365,24 @@ For production deployments, ensure you have:
 - **SSL certificate issues**: Check certificate validity and file permissions
 - **Database connection errors**: Verify database credentials and network connectivity
 - **Let's Encrypt failures**: Ensure domain points to server and is publicly accessible
+- **Profiling endpoint issues**: Check PROFILING_ENABLED environment variable and authentication settings
+- **Container health check failures**: Use ``./tests/docker/test-deployments.sh`` to diagnose issues
+
+**Automated Troubleshooting**
+
+The test script provides comprehensive failure diagnosis:
+
+.. code-block:: bash
+
+   # Run diagnostic tests
+   ./tests/docker/test-deployments.sh --modes http
+   
+   # Check failure logs (automatically generated)
+   ls -la arbeitszeitapp_failure_logs_*.tar.gz
+   
+   # Extract and examine logs
+   tar -xzf arbeitszeitapp_failure_logs_*.tar.gz
+   cat arbeitszeitapp_failure_logs_*/SUMMARY.txt
 
 **Monitoring and Maintenance**
 
@@ -339,6 +408,12 @@ Monitor your deployment with these commands:
    
    # Backup database
    docker compose -f docker-deployment/docker-compose.yml exec db pg_dump -U arbeitszeitapp arbeitszeitapp > backup.sql
+   
+   # Test deployment health
+   ./tests/docker/test-deployments.sh --modes http
+   
+   # Monitor profiling data (if enabled)
+   # Access http://your-domain.com/profiling with configured credentials
 
 **Updating the Deployment**
 
@@ -491,6 +566,8 @@ There are several approaches to update your deployment, depending on your downti
 Testing the Docker Deployment
 ============================
 
+The deployment includes comprehensive automated testing to validate all deployment scenarios.
+
 Prerequisites
 ------------
 
@@ -575,34 +652,158 @@ Execute the test script from the project root directory:
    # Make the script executable if needed
    chmod +x tests/docker/test-deployments.sh
    
-   # Run the tests with single-arch build (default)
+   # Run all tests with single-arch build (default)
    ./tests/docker/test-deployments.sh
    
-   # Run the tests with multiarch build
+   # Run all tests with multiarch build
    ./tests/docker/test-deployments.sh --multiarch
+   
+   # Test specific deployment modes
+   ./tests/docker/test-deployments.sh --modes http
+   ./tests/docker/test-deployments.sh --modes https,letsencrypt
+   
+   # Let's Encrypt testing options
+   ./tests/docker/test-deployments.sh --modes letsencrypt --letsencrypt-test staging
+   ./tests/docker/test-deployments.sh --modes letsencrypt --letsencrypt-test mock
+   ./tests/docker/test-deployments.sh --modes letsencrypt --letsencrypt-test containers-only
    
    # Show help and available options
    ./tests/docker/test-deployments.sh --help
 
 **Test Script Options:**
 
-* ``--multiarch`` - Build multiarch Docker images instead of single-arch (useful for testing cross-platform compatibility)
+* ``--multiarch`` - Build multiarch Docker images instead of single-arch
+* ``--modes MODE1,MODE2`` - Test specific deployment modes (http, https, letsencrypt)
+* ``--letsencrypt-test MODE`` - Configure Let's Encrypt testing approach:
+  
+  - ``staging`` - Use Let's Encrypt staging environment with real domains
+  - ``mock`` - Test with mock domains and /etc/hosts configuration
+  - ``containers-only`` - Test container orchestration without certificate requests
+
 * ``--help`` - Show usage information and available options
 
-**Build Process:**
+**Test Coverage:**
 
-The test script will automatically build the Docker image if it's not already present. You can choose between:
+The test suite validates:
 
-* **Single-arch build** (default): Builds for the current system architecture only, faster for local testing
-* **Multiarch build** (``--multiarch``): Builds for both x86_64 and aarch64 architectures, slower but tests cross-platform compatibility
+* **Container Health**: All services start correctly and pass health checks
+* **Database Connectivity**: Database migrations and connection functionality
+* **HTTP/HTTPS Endpoints**: Application accessibility and SSL configuration
+* **Static File Serving**: CSS, JavaScript, and other static assets
+* **Flask-Profiler Integration**: Performance monitoring endpoints (when enabled)
+* **Let's Encrypt Integration**: Certificate provisioning and renewal (staging/mock modes)
+* **Service Restart Resilience**: Application recovery after container restarts
 
-The script will:
+**Automated Build Process:**
+
+The test script will automatically:
+
 * Check for all required tools and configuration
-* Build the Docker image if not already present (single-arch by default, multiarch with ``--multiarch``)
-* Create necessary temporary files
-* Test each deployment scenario (HTTP, HTTPS, Let's Encrypt)
-* Clean up after testing is complete
+* Build the Docker image if not already present
+* Use single-arch build by default for faster testing
+* Support multiarch builds for cross-platform compatibility testing
+* Clean up resources after testing is complete
 
-Note: The HTTPS tests require the self-signed certificates generated above.
+**Failure Diagnostics:**
+
+When tests fail, the script automatically:
+
+* Collects comprehensive logs from all containers
+* Captures Docker system information and resource usage
+* Generates detailed failure reports in timestamped archives
+* Preserves logs for troubleshooting: ``arbeitszeitapp_failure_logs_*.tar.gz``
+
+**Let's Encrypt Testing Modes:**
+
+The test script supports multiple approaches for testing Let's Encrypt functionality:
+
+**Staging Mode**
+  Uses Let's Encrypt staging environment with real domains (requires valid DNS). This mode requires:
+  
+  - A real domain name configured in your ``.env`` file
+  - DNS A/AAAA records pointing to your server
+  - Internet connectivity for Let's Encrypt validation
+  
+  .. code-block:: bash
+  
+     ./tests/docker/test-deployments.sh --modes letsencrypt --letsencrypt-test staging
+
+**Mock Mode**
+  Tests with mock domains using ``/etc/hosts`` configuration (safe for development). This mode allows testing Let's Encrypt container orchestration without requiring real domains or internet connectivity.
+  
+  **Prerequisites for Mock Mode:**
+  
+  Before running mock mode tests, you need to add entries to your ``/etc/hosts`` file to simulate domain resolution:
+  
+  .. code-block:: bash
+  
+     # Add these entries to /etc/hosts (requires sudo)
+     sudo bash -c 'echo "127.0.0.1 letsencrypt-test.example.com" >> /etc/hosts'
+     sudo bash -c 'echo "::1 letsencrypt-test.example.com" >> /etc/hosts'
+  
+  **Alternative method using a text editor:**
+  
+  .. code-block:: bash
+  
+     # Edit /etc/hosts with your preferred editor
+     sudo nano /etc/hosts
+     
+     # Add these lines to the file:
+     127.0.0.1 letsencrypt-test.example.com
+     ::1 letsencrypt-test.example.com
+  
+  **Verification:**
+  
+  After adding the entries, verify they work correctly:
+  
+  .. code-block:: bash
+  
+     # Test domain resolution
+     ping -c 1 letsencrypt-test.example.com
+     nslookup letsencrypt-test.example.com
+     
+     # Should resolve to 127.0.0.1 (localhost)
+  
+  **Running Mock Mode Tests:**
+  
+  .. code-block:: bash
+  
+     ./tests/docker/test-deployments.sh --modes letsencrypt --letsencrypt-test mock
+  
+  **What Mock Mode Tests:**
+  
+  - Container orchestration with nginx-proxy and letsencrypt-nginx-proxy-companion
+  - Service discovery and routing configuration
+  - Environment variable configuration for Let's Encrypt
+  - Application accessibility through the nginx proxy
+  - Certificate request processes (will fail gracefully as expected)
+  
+  **Important Notes:**
+  
+  - Mock mode will attempt certificate provisioning but certificates will fail to generate (this is expected behavior)
+  - The test validates that the application remains accessible despite certificate failures
+  - Certificate provisioning errors are expected and do not indicate test failure
+  - The test focuses on container orchestration and service configuration rather than actual SSL certificates
+  
+  **Cleanup:**
+  
+  After testing, you may want to remove the mock entries from ``/etc/hosts``:
+  
+  .. code-block:: bash
+  
+     # Remove the mock domain entries
+     sudo sed -i '' '/letsencrypt-test.example.com/d' /etc/hosts
+     
+     # Or manually edit the file to remove the lines
+     sudo nano /etc/hosts
+
+**Containers-Only Mode**
+  Validates container orchestration without certificate requests. This mode tests the deployment configuration without attempting any certificate provisioning:
+  
+  .. code-block:: bash
+  
+     ./tests/docker/test-deployments.sh --modes letsencrypt --letsencrypt-test containers-only
+
+This comprehensive testing ensures deployment reliability across all supported scenarios.
 
 .. _`nix flake`: https://nixos.wiki/wiki/Flakes
