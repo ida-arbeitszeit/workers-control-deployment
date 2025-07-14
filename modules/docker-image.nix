@@ -64,6 +64,44 @@ let
     AUTO_MIGRATE = True
     ALEMBIC_CONFIGURATION_FILE = "/app/alembic.ini"
     MAIL_CONFIG_PATH = os.environ.get("MAIL_CONFIG_PATH", "/app/mailconfig.json")
+    # Generate mail configuration on the fly
+    def _generate_mail_config():
+        # Check if external mail config file exists
+        mail_config_path = os.environ.get("MAIL_CONFIG_PATH", "/app/mailconfig.json")
+        if os.path.exists(mail_config_path):
+            try:
+                with open(mail_config_path) as handle:
+                    return json.load(handle)
+            except (json.JSONDecodeError, FileNotFoundError):
+                pass
+        
+        # Generate configuration from environment variables
+        mail_server = os.environ.get("MAIL_SERVER", "")
+        if not mail_server:
+            # No mail configuration provided, return empty config
+            return {}
+        
+        return {
+            "MAIL_SERVER": mail_server,
+            "MAIL_PORT": os.environ.get("MAIL_PORT", "587"),
+            "MAIL_USERNAME": os.environ.get("MAIL_USERNAME", ""),
+            "MAIL_PASSWORD": os.environ.get("MAIL_PASSWORD", ""),
+            "MAIL_DEFAULT_SENDER": os.environ.get("MAIL_DEFAULT_SENDER", ""),
+            "MAIL_USE_TLS": os.environ.get("MAIL_USE_TLS", "true").lower() == "true",
+            "MAIL_USE_SSL": os.environ.get("MAIL_USE_SSL", "false").lower() == "true"
+        }
+    
+    # Apply mail configuration
+    mail_config = _generate_mail_config()
+    if mail_config:
+        MAIL_BACKEND = "flask_mail"
+        MAIL_SERVER = mail_config["MAIL_SERVER"]
+        MAIL_PORT = mail_config["MAIL_PORT"]
+        MAIL_USERNAME = mail_config["MAIL_USERNAME"]
+        MAIL_PASSWORD = mail_config["MAIL_PASSWORD"]
+        MAIL_DEFAULT_SENDER = mail_config["MAIL_DEFAULT_SENDER"]
+        MAIL_USE_TLS = mail_config["MAIL_USE_TLS"]
+        MAIL_USE_SSL = mail_config["MAIL_USE_SSL"]
     # Generate Flask-profiler configuration on the fly
     def _generate_profiler_config():
         # Check if external profiling config file exists

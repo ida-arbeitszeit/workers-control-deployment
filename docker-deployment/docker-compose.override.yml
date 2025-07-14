@@ -8,8 +8,13 @@ services:
       PROFILING_USERNAME: ${PROFILING_USERNAME:-}
       PROFILING_PASSWORD: ${PROFILING_PASSWORD:-}
       PROFILING_ENDPOINT: ${PROFILING_ENDPOINT:-profiling}
-    volumes:
-      - ../mailconfig.json:/app/mailconfig.json:ro
+      MAIL_SERVER: ${MAIL_SERVER:-}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_DEFAULT_SENDER: ${MAIL_DEFAULT_SENDER:-}
+      MAIL_USE_TLS: ${MAIL_USE_TLS:-true}
+      MAIL_USE_SSL: ${MAIL_USE_SSL:-false}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:5000/health"]
       interval: 10s

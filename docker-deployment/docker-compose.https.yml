@@ -19,11 +19,17 @@ services:
       # Ensure to set this environment variables in your .env file or directly in the environment"}"
       DATABASE_URL: ${DATABASE_URL}
       SERVER_NAME: ${SERVER_NAME}
+      MAIL_SERVER: ${MAIL_SERVER:-}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_DEFAULT_SENDER: ${MAIL_DEFAULT_SENDER:-}
+      MAIL_USE_TLS: ${MAIL_USE_TLS:-true}
+      MAIL_USE_SSL: ${MAIL_USE_SSL:-false}
     depends_on:
       db:
         condition: service_healthy
     volumes:
-      - ../mailconfig.json:/app/mailconfig.json:ro
       - arbeitszeitapp-data:/app
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:5000/health"]

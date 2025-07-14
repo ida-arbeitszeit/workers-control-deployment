@@ -205,7 +205,13 @@ All modes use the same ``.env`` file for configuration:
    DATABASE_URL=postgresql://arbeitszeitapp:your_secure_password@db/arbeitszeitapp
    
    # Email configuration (optional)
-   MAIL_CONFIG_PATH=/app/mailconfig.json
+   MAIL_SERVER=smtp.gmail.com
+   MAIL_PORT=587
+   MAIL_USERNAME=your-email@gmail.com
+   MAIL_PASSWORD=your-app-password
+   MAIL_DEFAULT_SENDER=your-email@gmail.com
+   MAIL_USE_TLS=true
+   MAIL_USE_SSL=false
    
    # Let's Encrypt configuration (for letsencrypt mode)
    LETSENCRYPT_EMAIL=admin@your-domain.com
@@ -228,6 +234,24 @@ The application includes Flask-profiler integration for performance monitoring. 
 - **PROFILING_ENDPOINT**: URL path for profiling interface (default: "profiling")
 
 When enabled, profiling data is accessible at ``http://your-domain.com/profiling`` (or your configured endpoint path). The profiling configuration is generated dynamically at runtime, eliminating the need for static configuration files.
+
+**Mail Configuration**
+
+The application includes optional email functionality for sending notifications. Mail configuration is handled entirely via environment variables:
+
+- **MAIL_SERVER**: SMTP server hostname (e.g., ``smtp.gmail.com``)
+- **MAIL_PORT**: SMTP server port (default: 587)
+- **MAIL_USERNAME**: SMTP username/email address
+- **MAIL_PASSWORD**: SMTP password or app-specific password
+- **MAIL_DEFAULT_SENDER**: Default sender email address
+- **MAIL_USE_TLS**: Enable TLS encryption (default: true)
+- **MAIL_USE_SSL**: Enable SSL encryption (default: false)
+
+If no mail server is configured, email functionality will be disabled. The mail configuration is generated dynamically at runtime, eliminating the need for static configuration files.
+
+**Alternative File-Based Configuration:**
+
+If you prefer to use a file-based configuration, you can create a ``mailconfig.json`` file and mount it into the container. See ``mailconfig.json.example`` for the required format.
 
 **Docker Image Building**
 
