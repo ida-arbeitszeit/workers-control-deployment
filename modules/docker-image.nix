@@ -65,6 +65,17 @@ let
     ALEMBIC_CONFIGURATION_FILE = "/app/alembic.ini"
     MAIL_CONFIG_PATH = os.environ.get("MAIL_CONFIG_PATH", "/app/mailconfig.json")
     PROFILING_CONFIG_PATH = os.environ.get("PROFILING_CONFIG_PATH", "/app/profiling.json")
+    
+    # Load Flask-profiler configuration from file
+    def _load_profiler_config():
+        profiling_config_path = os.environ.get("PROFILING_CONFIG_PATH", "/app/profiling.json")
+        try:
+            with open(profiling_config_path) as handle:
+                return json.load(handle)
+        except FileNotFoundError:
+            return None
+    
+    FLASK_PROFILER = _load_profiler_config()
   '';
   manageCommand = pkgs'.writeShellApplication {
     name = "arbeitszeitapp-manage";
@@ -102,10 +113,11 @@ pkgs'.dockerTools.buildImage {
   name = "arbeitszeitapp";
   tag = "latest";
   config = {
-    Cmd = [ "uwsgi" "--socket" ":5000" "--protocol" "http" "--module" "arbeitszeit_flask.wsgi:app" "--master" "--processes" "1" "--threads" "2" ];
+    Cmd = [ "python" "-m" "flask" "run" "--host=0.0.0.0" "--port=5000" ];
     WorkingDir = "/app";
     Env = [
       "FLASK_APP=arbeitszeit_flask.wsgi:app"
+      "FLASK_DEBUG=1"
       "ARBEITSZEITAPP_CONFIGURATION_PATH=/app/arbeitszeitapp.cfg"
       "MPLCONFIGDIR=/app"
       "MAIL_CONFIG_PATH=/app/mailconfig.json"
@@ -137,7 +149,6 @@ pkgs'.dockerTools.buildImage {
         p.flask-profiler
         p.alembic
       ]))
-      pkgs'.uwsgi
       pkgs'.coreutils
       pkgs'.curl  # Add curl for healthchecks
       manageCommand
@@ -146,10 +157,6 @@ pkgs'.dockerTools.buildImage {
         mkdir -p $out/app
         cp ${configFile} $out/app/arbeitszeitapp.cfg
         cp ${alembicFile} $out/app/alembic.ini
-      '')
-      (pkgs'.runCommand "symlink-uwsgi" { buildInputs = [ pkgs'.coreutils ]; } ''
-        mkdir -p $out/bin
-        ln -s ${pkgs'.uwsgi}/bin/uwsgi $out/bin/uwsgi
       '')
     ];
   };

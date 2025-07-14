@@ -98,12 +98,18 @@ case "$COMMAND" in
     
     # Default to current system if no architecture specified
     if [ -z "$ARCH" ]; then
-      case "$(uname -m)" in
-        x86_64)
+      case "$(uname -s)-$(uname -m)" in
+        Linux-x86_64)
           ARCH="x86_64-linux"
           ;;
-        arm64|aarch64)
+        Linux-aarch64|Linux-arm64)
           ARCH="aarch64-linux"
+          ;;
+        Darwin-x86_64)
+          ARCH="x86_64-linux"  # Cross-compile to Linux on Intel Mac
+          ;;
+        Darwin-arm64)
+          ARCH="aarch64-linux"  # Cross-compile to Linux on Apple Silicon
           ;;
         *)
           echo "ERROR: Could not detect architecture. Please specify x86_64-linux or aarch64-linux"
@@ -124,9 +130,59 @@ case "$COMMAND" in
     
     echo "[INFO] Building Docker image for $ARCH..."
     
+    # Check if we're trying to cross-compile on macOS
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+      echo "[INFO] macOS detected, cross-compilation to Linux required..."
+      
+      # Check if cross-compilation is configured
+      if ! nix --extra-experimental-features nix-command config show | grep -q "extra-platforms.*linux" 2>/dev/null; then
+        echo "ERROR: Cross-compilation not configured for macOS to Linux."
+        echo "To enable cross-compilation, you need to:"
+        echo "1. Add yourself to trusted users: echo 'trusted-users = root $USER' | sudo tee -a /etc/nix/nix.conf"
+        echo "2. Add Linux platforms: echo 'extra-platforms = x86_64-linux aarch64-linux' | sudo tee -a /etc/nix/nix.conf"
+        echo "3. Restart Nix daemon: sudo launchctl kickstart -k system/org.nixos.nix-daemon"
+        echo ""
+        echo "If cross-compilation still fails, alternative approaches:"
+        echo "- Use a Linux VM or CI/CD pipeline for building Docker images"
+        echo "- Use the GitHub Actions workflow (once the flake.nix uses GitHub URLs)"
+        echo "- Build on a Linux machine and push to a registry"
+        exit 1
+      fi
+    fi
+    
     # Build the image
     if ! nix --extra-experimental-features nix-command --extra-experimental-features flakes build .#dockerImage --system "$ARCH"; then
       echo "ERROR: Failed to build $ARCH image"
+      
+      # Provide specific guidance for macOS users
+      if [[ "$OSTYPE" == "darwin"* ]]; then
+        echo ""
+        echo "This is likely due to cross-compilation from macOS (Darwin) to Linux."
+        echo "The issue occurs even with matching architectures (aarch64-darwin → aarch64-linux)."
+        echo "The arbeitszeitapp flake does support aarch64-linux (works on native aarch64-linux VMs)."
+        echo ""
+        echo "To resolve this issue:"
+        echo "1. Build for x86_64-linux instead: ./run-deployment.sh build x86_64-linux"
+        echo "2. Use a Linux VM for building (native aarch64-linux works)"
+        echo "3. Use CI/CD pipelines for building Docker images"
+        echo "4. Use GitHub URLs instead of local paths (planned migration)"
+        echo ""
+        echo "Cross-compilation configuration (may not resolve this specific issue):"
+        echo ""
+        echo "  # Configure Nix (requires admin privileges)"
+        echo "  echo 'trusted-users = root \$USER' | sudo tee -a /etc/nix/nix.conf"
+        echo "  echo 'extra-platforms = x86_64-linux aarch64-linux' | sudo tee -a /etc/nix/nix.conf"
+        echo ""
+        echo "  # Restart Nix daemon"
+        echo "  sudo launchctl unload /Library/LaunchDaemons/org.nixos.nix-daemon.plist"
+        echo "  sudo launchctl load /Library/LaunchDaemons/org.nixos.nix-daemon.plist"
+        echo ""
+        echo "  # Verify configuration"
+        echo "  nix --extra-experimental-features nix-command config show | grep -E '(trusted-users|extra-platforms)'"
+        echo ""
+        echo "For detailed troubleshooting, see README.rst 'macOS Considerations' section."
+      fi
+      
       exit 1
     fi
     
@@ -156,6 +212,26 @@ case "$COMMAND" in
     REGISTRY="$ARG2"
     
     echo "[INFO] Building multiarch Docker image..."
+    
+    # Check if we're trying to cross-compile on macOS
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+      echo "[INFO] macOS detected, cross-compilation to Linux required..."
+      
+      # Check if cross-compilation is configured
+      if ! nix --extra-experimental-features nix-command config show | grep -q "extra-platforms.*linux" 2>/dev/null; then
+        echo "ERROR: Cross-compilation not configured for macOS to Linux."
+        echo "To enable cross-compilation, you need to:"
+        echo "1. Add yourself to trusted users: echo 'trusted-users = root $USER' | sudo tee -a /etc/nix/nix.conf"
+        echo "2. Add Linux platforms: echo 'extra-platforms = x86_64-linux aarch64-linux' | sudo tee -a /etc/nix/nix.conf"
+        echo "3. Restart Nix daemon: sudo launchctl kickstart -k system/org.nixos.nix-daemon"
+        echo ""
+        echo "If cross-compilation still fails, alternative approaches:"
+        echo "- Use a Linux VM or CI/CD pipeline for building Docker images"
+        echo "- Use the GitHub Actions workflow (once the flake.nix uses GitHub URLs)"
+        echo "- Build on a Linux machine and push to a registry"
+        exit 1
+      fi
+    fi
     
     # Build for each architecture
     echo "[INFO] Building x86_64-linux image..."

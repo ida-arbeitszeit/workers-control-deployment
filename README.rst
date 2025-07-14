@@ -213,6 +213,79 @@ Build options:
    ./run-deployment.sh build x86_64-linux docker.io/myuser/arbeitszeitapp:latest
    ./run-deployment.sh build-multiarch docker.io/myuser/arbeitszeitapp:latest
 
+**macOS Considerations**
+
+Building Docker images on macOS requires cross-compilation from Darwin to Linux. This may require additional Nix configuration.
+
+**Step-by-Step Cross-compilation Setup:**
+
+1. **Check current configuration** (optional but recommended)::
+
+    ./check-nix-config.sh
+
+   This script will diagnose your current Nix configuration and identify any issues.
+
+2. **Configure Nix daemon** (requires admin privileges):
+
+   .. code-block:: bash
+
+      # Add trusted users and extra platforms
+      echo "trusted-users = root $USER" | sudo tee -a /etc/nix/nix.conf
+      echo "extra-platforms = x86_64-linux aarch64-linux" | sudo tee -a /etc/nix/nix.conf
+
+3. **Restart the Nix daemon**:
+
+   .. code-block:: bash
+
+      # Restart daemon to apply changes
+      sudo launchctl unload /Library/LaunchDaemons/org.nixos.nix-daemon.plist
+      sudo launchctl load /Library/LaunchDaemons/org.nixos.nix-daemon.plist
+
+4. **Verify configuration**:
+
+   .. code-block:: bash
+
+      # Check that settings are applied
+      nix --extra-experimental-features nix-command config show | grep -E "(trusted-users|extra-platforms)"
+
+   You should see your username in trusted-users and the additional platforms listed.
+
+5. **Test cross-compilation**:
+
+   .. code-block:: bash
+
+      ./run-deployment.sh build-docker
+
+**Troubleshooting Cross-compilation:**
+
+If you encounter "Undefined error: 0" or similar cross-compilation failures:
+
+- Ensure you have sufficient disk space (cross-compilation requires significant space)
+- Verify Docker Desktop is running and configured for Linux containers
+- Check that your Nix installation supports cross-compilation features
+- Try building with increased verbosity: ``nix build --verbose --print-build-logs``
+- Clean Nix store if space is limited: ``nix-collect-garbage -d``
+- If using local path dependencies (``path:/Users/...``), ensure they are compatible with cross-compilation
+- Consider using GitHub URLs instead of local paths for dependencies
+
+**Known Issues:**
+
+- **"Undefined error: 0" during cross-compilation**: This error occurs when cross-compiling from macOS to Linux, even with matching architectures (aarch64-darwin → aarch64-linux)
+- The arbeitszeitapp flake DOES support aarch64-linux (confirmed by successful builds on native aarch64-linux VMs)
+- The issue is specific to the cross-compilation mechanism from Darwin to Linux, not missing architecture support
+- This appears to be related to how Nix handles cross-compilation from Darwin to Linux during the build process
+- The same code builds successfully on native Linux systems (including aarch64-linux VMs)
+
+**Alternative Approaches:**
+
+If cross-compilation continues to fail, consider:
+
+- Using a Linux VM or container for building
+- Setting up CI/CD pipelines (GitHub Actions, etc.)
+- Building on a Linux machine and pushing to a registry
+- Using pre-built images from a registry
+- Configuring remote Linux builders in Nix configuration
+
 **Production Deployment Checklist**
 
 For production deployments, ensure you have:

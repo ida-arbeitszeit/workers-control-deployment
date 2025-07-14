@@ -9,4 +9,28 @@ __pycache__/
 .dockerignore
 
 # Nix
+result_Store
+
+# Test failure logs
+arbeitszeitapp_failure_logs_*.tar.gz
+arbeitszeitapp_failure_logs_*/
+
+# macOS specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.dbt variables
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Docker
+.dockerignore
+
+# Nix
 result
