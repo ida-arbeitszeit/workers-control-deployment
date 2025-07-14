@@ -508,7 +508,7 @@ run_tests() {
   echo "6. Checking profiling endpoint (authenticated)..."
   # Note: This test assumes a user 'testuser' with password 'testpassword' exists in the database.
   # Use --location-trusted to pass credentials through redirects from port 80 to 5000
-  if ! curl -fsSL --location-trusted -u 'testuser:testpassword' "$url/profiling" > /dev/null; then
+  if ! curl -fsSLk --location-trusted -u 'testuser:testpassword' "$url/profiling" > /dev/null; then
     echo "ERROR: Profiling endpoint was not accessible with correct credentials."
     collect_failure_logs "$abs_compose_files" "$mode" "arbeitszeitapp" "profiling-endpoint-auth"
     return 1

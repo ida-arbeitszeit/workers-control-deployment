@@ -5,11 +5,8 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx-https.conf.template:/etc/nginx/nginx.conf.template:ro
-      - ../certs:/etc/nginx/certs:ro
-    environment:
-      - SERVER_NAME=${SERVER_NAME}
-    command: /bin/sh -c "envsubst < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
+      - ./nginx-https.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/nginx/certs:ro
     depends_on:
       - arbeitszeitapp
   arbeitszeitapp:
