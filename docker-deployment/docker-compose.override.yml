@@ -3,9 +3,13 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL}
       SERVER_NAME: ${SERVER_NAME}
+      PROFILING_ENABLED: ${PROFILING_ENABLED:-false}
+      PROFILING_AUTH_ENABLED: ${PROFILING_AUTH_ENABLED:-false}
+      PROFILING_USERNAME: ${PROFILING_USERNAME:-}
+      PROFILING_PASSWORD: ${PROFILING_PASSWORD:-}
+      PROFILING_ENDPOINT: ${PROFILING_ENDPOINT:-profiling}
     volumes:
       - ../mailconfig.json:/app/mailconfig.json:ro
-      - ../profiling.json:/app/profiling.json:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:5000/health"]
       interval: 10s

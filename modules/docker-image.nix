@@ -64,18 +64,37 @@ let
     AUTO_MIGRATE = True
     ALEMBIC_CONFIGURATION_FILE = "/app/alembic.ini"
     MAIL_CONFIG_PATH = os.environ.get("MAIL_CONFIG_PATH", "/app/mailconfig.json")
-    PROFILING_CONFIG_PATH = os.environ.get("PROFILING_CONFIG_PATH", "/app/profiling.json")
-    
-    # Load Flask-profiler configuration from file
-    def _load_profiler_config():
+    # Generate Flask-profiler configuration on the fly
+    def _generate_profiler_config():
+        # Check if external profiling config file exists
         profiling_config_path = os.environ.get("PROFILING_CONFIG_PATH", "/app/profiling.json")
-        try:
-            with open(profiling_config_path) as handle:
-                return json.load(handle)
-        except FileNotFoundError:
-            return None
+        if os.path.exists(profiling_config_path):
+            try:
+                with open(profiling_config_path) as handle:
+                    return json.load(handle)
+            except (json.JSONDecodeError, FileNotFoundError):
+                pass
+        
+        # Generate default configuration
+        return {
+            "enabled": os.environ.get("PROFILING_ENABLED", "false").lower() == "true",
+            "storage": {
+                "engine": "sqlite"
+            },
+            "basicAuth": {
+                "enabled": os.environ.get("PROFILING_AUTH_ENABLED", "false").lower() == "true",
+                "username": os.environ.get("PROFILING_USERNAME", ""),
+                "password": os.environ.get("PROFILING_PASSWORD", "")
+            },
+            "ignore": [
+                "^/static/.*",
+                "^/favicon.ico$",
+                "^/health$"
+            ],
+            "endpointRoot": os.environ.get("PROFILING_ENDPOINT", "profiling")
+        }
     
-    FLASK_PROFILER = _load_profiler_config()
+    FLASK_PROFILER = _generate_profiler_config()
   '';
   manageCommand = pkgs'.writeShellApplication {
     name = "arbeitszeitapp-manage";

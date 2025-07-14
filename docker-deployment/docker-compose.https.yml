@@ -16,7 +16,6 @@ services:
       ARBEITSZEITAPP_CONFIGURATION_PATH: /app/arbeitszeitapp.cfg
       MPLCONFIGDIR: /app
       MAIL_CONFIG_PATH: /app/mailconfig.json
-      PROFILING_CONFIG_PATH: /app/profiling.json
       # Ensure to set this environment variables in your .env file or directly in the environment"}"
       DATABASE_URL: ${DATABASE_URL}
       SERVER_NAME: ${SERVER_NAME}
@@ -25,7 +24,6 @@ services:
         condition: service_healthy
     volumes:
       - ../mailconfig.json:/app/mailconfig.json:ro
-      - ../profiling.json:/app/profiling.json:ro
       - arbeitszeitapp-data:/app
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:5000/health"]

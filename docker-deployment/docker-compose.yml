@@ -6,7 +6,6 @@ services:
       ARBEITSZEITAPP_CONFIGURATION_PATH: /app/arbeitszeitapp.cfg
       MPLCONFIGDIR: /app
       MAIL_CONFIG_PATH: /app/mailconfig.json
-      PROFILING_CONFIG_PATH: /app/profiling.json
       SERVER_NAME: ${SERVER_NAME}
     ports:
       - "5000:5000"

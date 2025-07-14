@@ -8,8 +8,8 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1752437468,
-        "narHash": "sha256-ff2iQjzlrc5TTVyVhQUnrHodNS06NdI5VNzo0jUfvzI=",
+        "lastModified": 1752512435,
+        "narHash": "sha256-Cz4LJodFqT6UUO7e54UBxc4FBsbpUIQa6MdYzVk6Vho=",
         "path": "/Users/petscho/arbeitszeitapp",
         "type": "path"
       },
