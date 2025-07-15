@@ -1,13 +1,15 @@
 {
   description = "Implements a module for running arbeitszeitapp";
   inputs = {
+    # TODO: Replace with GitHub URL once arbeitszeitapp is pushed to GitHub
+    # arbeitszeitapp.url = "github:ida-arbeitszeit/arbeitszeitapp";
     arbeitszeitapp.url = "path:/Users/petscho/arbeitszeitapp";
     nixpkgs-24-11.url = "github:NixOS/nixpkgs/nixos-24.11";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs-24-11, nixpkgs-unstable, arbeitszeitapp, flake-utils, ... }:
+  outputs = { self, nixpkgs-24-11, nixpkgs-unstable, arbeitszeitapp, ... }:
     let
       lib = nixpkgs-unstable.lib;
       systems = [ "x86_64-linux" "aarch64-linux" ];
@@ -26,7 +28,7 @@
           nixpkgs.nixosTest {
             name = name;
             nodes.machine =
-              { config, ... }:
+              { ... }:
               {
                 imports = [ self.nixosModules.default ];
                 nixpkgs.pkgs = nixpkgs;
@@ -51,7 +53,7 @@
           nixpkgs.nixosTest {
             name = name;
             nodes.machine =
-              { config, ... }:
+              { ... }:
               {
                 virtualisation.memorySize = 2048;
                 virtualisation.diskSize = 1024;

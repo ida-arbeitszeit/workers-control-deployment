@@ -44,7 +44,135 @@ Now, edit the `.env` file to set your `SERVER_NAME`, database credentials, and e
 
 A helper script `run-deployment.sh` is provided to simplify running each scenario.
 
-**Deployment Script Usage:**
+**Script Overview**
+
+The deployment includes two main scripts for different purposes:
+
+1. **`run-deployment.sh`** - Day-to-day deployment operations
+2. **`maintenance/update-deployment.sh`** - Comprehensive deployment updates
+
+**run-deployment.sh vs update-deployment.sh**
+
+.. list-table:: Script Comparison
+   :widths: 30 35 35
+   :header-rows: 1
+
+   * - Aspect
+     - run-deployment.sh
+     - update-deployment.sh
+   * - **Purpose**
+     - Single deployment operations
+     - Comprehensive updates & upgrades
+   * - **Scope**
+     - Start/stop services, build images
+     - Multi-step update process
+   * - **Dependencies**
+     - Works with current setup
+     - Updates flake inputs, checks PostgreSQL
+   * - **Downtime**
+     - User manages manually
+     - Configurable strategies (zero/minimal/full)
+   * - **Health Checks**
+     - Manual verification needed
+     - Automatic health verification
+   * - **Use Cases**
+     - Development, testing, CI/CD
+     - Production updates, maintenance
+   * - **Frequency**
+     - Daily operations
+     - Scheduled updates (weekly/monthly)
+
+**When to Use Each Script:**
+
+**Use `run-deployment.sh` for:**
+
+- **Development workflow**: Starting and stopping services during development
+- **Initial deployment**: Setting up a new deployment for the first time
+- **Testing**: Quick builds and deployments for testing changes
+- **CI/CD pipelines**: Automated builds and deployments in continuous integration
+- **Manual operations**: When you need precise control over individual steps
+
+.. code-block:: bash
+
+   # Development examples
+   ./run-deployment.sh up http              # Start development environment
+   ./run-deployment.sh down http            # Stop development environment
+   ./run-deployment.sh build                # Build latest changes
+   
+   # CI/CD examples
+   ./run-deployment.sh build x86_64-linux registry/app:$VERSION
+   ./run-deployment.sh build-multiarch registry/app:latest
+
+**Use `update-deployment.sh` for:**
+
+- **Production updates**: Updating live production deployments
+- **Scheduled maintenance**: Regular updates with dependency management
+- **Major upgrades**: PostgreSQL version upgrades, system updates
+- **Automated maintenance**: Scripted updates with health verification
+- **Emergency updates**: Quick updates with appropriate downtime strategies
+
+.. code-block:: bash
+
+   # Production examples
+   ./maintenance/update-deployment.sh --mode letsencrypt --downtime zero
+   ./maintenance/update-deployment.sh --mode letsencrypt --postgres 16
+   
+   # Maintenance examples
+   ./maintenance/update-deployment.sh --mode letsencrypt --downtime minimal
+   ./maintenance/update-deployment.sh --mode http --skip-flake-update
+
+**Typical Workflow Examples:**
+
+**Development Workflow:**
+
+.. code-block:: bash
+
+   # Initial setup
+   cp docker-deployment/.env.example docker-deployment/.env
+   # Edit .env file with your settings
+   
+   # Start development environment
+   ./run-deployment.sh up http
+   
+   # Make code changes, then rebuild and restart
+   ./run-deployment.sh build
+   ./run-deployment.sh down http
+   ./run-deployment.sh up http
+   
+   # Or use update script for comprehensive rebuild
+   ./maintenance/update-deployment.sh --mode http --skip-flake-update
+
+**Production Deployment:**
+
+.. code-block:: bash
+
+   # Initial production deployment
+   ./run-deployment.sh build
+   ./run-deployment.sh up letsencrypt
+   
+   # Regular maintenance (weekly/monthly)
+   ./maintenance/update-deployment.sh --mode letsencrypt --downtime zero
+   
+   # Emergency updates
+   ./maintenance/update-deployment.sh --mode letsencrypt --downtime minimal --skip-flake-update
+   
+   # Major upgrades
+   ./maintenance/update-deployment.sh --mode letsencrypt --postgres 16 --downtime full
+
+**CI/CD Pipeline:**
+
+.. code-block:: bash
+
+   # Build and push (in CI)
+   ./run-deployment.sh build x86_64-linux registry/app:$VERSION
+   ./run-deployment.sh build-multiarch registry/app:latest
+   
+   # Deploy (in CD)
+   ./maintenance/update-deployment.sh --mode letsencrypt --downtime zero --skip-flake-update
+
+**Deployment Script Usage (run-deployment.sh):**
+
+The `run-deployment.sh` script handles individual deployment operations:
 
 .. code-block:: bash
 
@@ -410,6 +538,25 @@ The test script provides comprehensive failure diagnosis:
 
 **Monitoring and Maintenance**
 
+The deployment includes comprehensive tools for monitoring and maintenance:
+
+**Unified Update Script**
+
+The ``maintenance/update-deployment.sh`` script provides a comprehensive solution for deployment updates:
+
+.. code-block:: bash
+
+   # Show all available options
+   ./maintenance/update-deployment.sh --help
+   
+   # Standard production update
+   ./maintenance/update-deployment.sh --mode letsencrypt --downtime zero
+   
+   # Emergency update with full restart
+   ./maintenance/update-deployment.sh --mode letsencrypt --downtime full --verbose
+
+**Monitoring Commands**
+
 Monitor your deployment with these commands:
 
 .. code-block:: bash
@@ -441,17 +588,77 @@ Monitor your deployment with these commands:
 
 **Updating the Deployment**
 
-To update your deployment:
+A comprehensive update script is provided to handle all aspects of deployment updates:
 
 .. code-block:: bash
 
-   # Pull latest changes
+   # Standard update with minimal downtime
+   ./maintenance/update-deployment.sh --mode letsencrypt
+   
+   # Zero-downtime update for production
+   ./maintenance/update-deployment.sh --mode letsencrypt --downtime zero
+   
+   # Full restart with PostgreSQL upgrade
+   ./maintenance/update-deployment.sh --mode letsencrypt --downtime full --postgres 16
+   
+   # Quick update skipping flake updates
+   ./maintenance/update-deployment.sh --mode http --skip-flake-update
+
+**Update Script Features:**
+
+The update script automatically handles:
+
+- **Flake Input Updates**: Updates all Nix flake dependencies to latest versions
+- **PostgreSQL Version Checks**: Automatically detects and offers to upgrade PostgreSQL
+- **Docker Image Building**: Rebuilds the application image with latest changes
+- **Deployment Updates**: Updates services with configurable downtime strategies
+- **Health Verification**: Runs automated tests to verify deployment health
+
+**Downtime Strategies:**
+
+- **Zero-downtime** (``--downtime zero``): Rolling update that recreates only changed services
+- **Minimal-downtime** (``--downtime minimal``): Updates all services with minimal downtime (default)
+- **Full restart** (``--downtime full``): Complete restart, useful for major configuration changes
+
+**Script Options:**
+
+.. code-block:: bash
+
+   Usage: ./maintenance/update-deployment.sh [OPTIONS]
+   
+   OPTIONS:
+       -m, --mode MODE          Deployment mode (http, https, letsencrypt)
+       -d, --downtime STRATEGY  Downtime tolerance (zero, minimal, full)
+       -p, --postgres VERSION   Force PostgreSQL upgrade to specific version
+       --skip-flake-update     Skip flake input updates
+       --skip-postgres-check   Skip PostgreSQL version check
+       -v, --verbose           Enable verbose output
+       -h, --help              Show help message
+
+**Manual Update Process (Advanced Users):**
+
+If you prefer manual control, you can follow these steps:
+
+.. code-block:: bash
+
+   # 1. Pull latest changes
    git pull origin main
    
-   # Rebuild Docker image
+   # 2. Update flake inputs
+   nix --extra-experimental-features nix-command --extra-experimental-features flakes flake update --commit-lock-file
+   
+   # 3. Rebuild Docker image
    ./run-deployment.sh build
    
-   # Restart services (example for letsencrypt mode)
+   # 4. Update deployment (choose one strategy):
+   
+   # Zero-downtime rolling update
+   docker compose -f docker-deployment/docker-compose.letsencrypt.yml up -d --force-recreate arbeitszeitapp
+   
+   # Minimal-downtime update
+   docker compose -f docker-deployment/docker-compose.letsencrypt.yml up -d
+   
+   # Full restart
    ./run-deployment.sh down letsencrypt
    ./run-deployment.sh up letsencrypt
 
@@ -508,22 +715,33 @@ For advanced users, you can use pg_upgrade within containers:
    # Inside the container, run pg_upgrade
    # (This requires more advanced Docker knowledge)
 
-**Automated PostgreSQL Upgrade Script**
+**Automated PostgreSQL Upgrade (Recommended)**
 
-For convenience, an automated upgrade script is provided:
+The deployment update script can automatically handle PostgreSQL upgrades:
+
+.. code-block:: bash
+
+   # Upgrade PostgreSQL as part of deployment update
+   ./maintenance/update-deployment.sh --mode letsencrypt --postgres 16
+   
+   # The script will automatically:
+   # 1. Update flake inputs
+   # 2. Create a database backup
+   # 3. Stop the deployment
+   # 4. Update Docker Compose files
+   # 5. Remove old volume data
+   # 6. Start deployment with new version
+   # 7. Restore the backup
+   # 8. Verify deployment health
+
+**Manual PostgreSQL Upgrade Script**
+
+For standalone PostgreSQL upgrades, a dedicated script is provided:
 
 .. code-block:: bash
 
    # Upgrade from PostgreSQL 15 to 16
    ./maintenance/upgrade-postgres.sh 15 16
-   
-   # The script will:
-   # 1. Create a database backup
-   # 2. Stop the deployment
-   # 3. Update Docker Compose files
-   # 4. Remove old volume data
-   # 5. Start deployment with new version
-   # 6. Restore the backup
 
 **Note**: This script requires manual confirmation before deleting data.
 
@@ -535,57 +753,15 @@ To check your current PostgreSQL version:
 
    docker compose -f docker-deployment/docker-compose.yml exec db psql -U arbeitszeitapp -c "SELECT version();"
 
-**Updating the Deployment**
-
-There are several approaches to update your deployment, depending on your downtime tolerance:
-
-**Method 1: Zero-Downtime Rolling Update (Recommended)**
-
-.. code-block:: bash
-
-   # Pull latest changes
-   git pull origin main
-   
-   # Rebuild Docker image
-   ./run-deployment.sh build
-   
-   # Rolling update - this recreates only changed services
-   docker compose -f docker-deployment/docker-compose.letsencrypt.yml up -d --force-recreate arbeitszeitapp
-   
-   # Or for other modes:
-   # docker compose -f docker-deployment/docker-compose.yml -f docker-deployment/docker-compose.https.yml up -d --force-recreate arbeitszeitapp
-
-**Method 2: Minimal-Downtime Update**
-
-.. code-block:: bash
-
-   # Pull latest changes and rebuild
-   git pull origin main
-   ./run-deployment.sh build
-   
-   # Update all services with minimal downtime
-   docker compose -f docker-deployment/docker-compose.letsencrypt.yml up -d
-
-**Method 3: Full Restart (With Downtime)**
-
-.. code-block:: bash
-
-   # Pull latest changes
-   git pull origin main
-   
-   # Rebuild Docker image
-   ./run-deployment.sh build
-   
-   # Full restart (causes downtime)
-   ./run-deployment.sh down letsencrypt
-   ./run-deployment.sh up letsencrypt
-
 **Update Strategy Notes:**
 
-- **Method 1** provides true zero-downtime updates for the application service
-- **Method 2** minimizes downtime by only restarting changed services
-- **Method 3** should only be used when configuration changes require a full restart
+- **Zero-downtime** provides true zero-downtime updates for the application service
+- **Minimal-downtime** minimizes downtime by only restarting changed services  
+- **Full restart** should only be used when configuration changes require a complete restart
 - Database updates typically don't require service restart unless you're upgrading PostgreSQL versions
+- The update script automatically handles flake input updates and PostgreSQL version management
+
+For more details on the automated update process, see the "Updating the Deployment" section above.
 
 Testing the Docker Deployment
 ============================

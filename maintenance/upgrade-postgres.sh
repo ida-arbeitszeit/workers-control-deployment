@@ -88,11 +88,17 @@ done
 # Step 4: Remove old volume
 log "Step 4: Removing old PostgreSQL volume"
 warn "This will delete your current database data!"
-read -p "Are you sure you want to continue? (y/N) " -n 1 -r
-echo
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    error "Upgrade cancelled"
-    exit 1
+
+# Check if we're running in automated mode (via update-deployment.sh)
+if [[ "${AUTOMATED_MODE:-false}" == "true" ]]; then
+    log "Running in automated mode - proceeding with volume removal"
+else
+    read -p "Are you sure you want to continue? (y/N) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        error "Upgrade cancelled"
+        exit 1
+    fi
 fi
 
 if docker volume rm docker-deployment_postgres-data 2>/dev/null; then
@@ -103,7 +109,14 @@ fi
 
 # Step 5: Start deployment
 log "Step 5: Starting deployment with new PostgreSQL version"
-read -p "Which deployment mode? (http/https/letsencrypt) " -r mode
+
+# Check if deployment mode is provided as environment variable (for automation)
+if [[ -n "${DEPLOYMENT_MODE:-}" ]]; then
+    mode="$DEPLOYMENT_MODE"
+    log "Using deployment mode from environment: $mode"
+else
+    read -p "Which deployment mode? (http/https/letsencrypt) " -r mode
+fi
 if ./run-deployment.sh up "$mode"; then
     log "Deployment started with PostgreSQL $NEW_VERSION"
 else
