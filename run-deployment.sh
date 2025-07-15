@@ -21,6 +21,9 @@ usage() {
   echo "  build           Build single-arch Docker image and optionally push."
   echo "  build-multiarch Build and optionally push multiarch Docker image."
   echo
+  echo "IMPORTANT: Building Docker images requires a Linux system."
+  echo "If you're on macOS or Windows, use a Linux VM or CI/CD pipeline."
+  echo
   echo "Modes (for up/down):"
   echo "  http         - HTTP only (no HTTPS)"
   echo "  https        - Manual HTTPS (bring your own certs)"
@@ -35,6 +38,7 @@ usage() {
   echo "  If omitted, builds locally without pushing."
   echo
   echo "Examples:"
+  echo "  $0 up letsencrypt                           # Start with Let's Encrypt"
   echo "  $0 build                                    # Build for current architecture"
   echo "  $0 build x86_64-linux                      # Build for x86_64"
   echo "  $0 build aarch64-linux docker.io/user/app:v1.0  # Build ARM64 and push"
@@ -96,23 +100,31 @@ case "$COMMAND" in
     ARCH="$ARG2"
     REGISTRY="$ARG3"
     
+    # Check if we're running on a supported OS
+    if [[ "$(uname -s)" != "Linux" ]]; then
+      echo "ERROR: Docker image building is only supported on Linux."
+      echo "Detected OS: $(uname -s)-$(uname -m)"
+      echo ""
+      echo "This deployment requires Linux containers and is designed to run on Linux hosts."
+      echo "To build Docker images on other operating systems, please use:"
+      echo "- A Linux VM (x86_64 or aarch64)"
+      echo "- GitHub Actions or other CI/CD services"
+      echo "- A Linux development environment"
+      exit 1
+    fi
+    
     # Default to current system if no architecture specified
     if [ -z "$ARCH" ]; then
-      case "$(uname -s)-$(uname -m)" in
-        Linux-x86_64)
+      case "$(uname -m)" in
+        x86_64)
           ARCH="x86_64-linux"
           ;;
-        Linux-aarch64|Linux-arm64)
+        aarch64|arm64)
           ARCH="aarch64-linux"
           ;;
-        Darwin-x86_64)
-          ARCH="x86_64-linux"  # Cross-compile to Linux on Intel Mac
-          ;;
-        Darwin-arm64)
-          ARCH="aarch64-linux"  # Cross-compile to Linux on Apple Silicon
-          ;;
         *)
-          echo "ERROR: Could not detect architecture. Please specify x86_64-linux or aarch64-linux"
+          echo "ERROR: Unsupported architecture: $(uname -m)"
+          echo "Supported architectures: x86_64, aarch64"
           exit 1
           ;;
       esac
@@ -130,59 +142,9 @@ case "$COMMAND" in
     
     echo "[INFO] Building Docker image for $ARCH..."
     
-    # Check if we're trying to cross-compile on macOS
-    if [[ "$(uname -s)" == "Darwin" ]]; then
-      echo "[INFO] macOS detected, cross-compilation to Linux required..."
-      
-      # Check if cross-compilation is configured
-      if ! nix --extra-experimental-features nix-command config show | grep -q "extra-platforms.*linux" 2>/dev/null; then
-        echo "ERROR: Cross-compilation not configured for macOS to Linux."
-        echo "To enable cross-compilation, you need to:"
-        echo "1. Add yourself to trusted users: echo 'trusted-users = root $USER' | sudo tee -a /etc/nix/nix.conf"
-        echo "2. Add Linux platforms: echo 'extra-platforms = x86_64-linux aarch64-linux' | sudo tee -a /etc/nix/nix.conf"
-        echo "3. Restart Nix daemon: sudo launchctl kickstart -k system/org.nixos.nix-daemon"
-        echo ""
-        echo "If cross-compilation still fails, alternative approaches:"
-        echo "- Use a Linux VM or CI/CD pipeline for building Docker images"
-        echo "- Use the GitHub Actions workflow (once the flake.nix uses GitHub URLs)"
-        echo "- Build on a Linux machine and push to a registry"
-        exit 1
-      fi
-    fi
-    
     # Build the image
     if ! nix --extra-experimental-features nix-command --extra-experimental-features flakes build .#dockerImage --system "$ARCH"; then
       echo "ERROR: Failed to build $ARCH image"
-      
-      # Provide specific guidance for macOS users
-      if [[ "$OSTYPE" == "darwin"* ]]; then
-        echo ""
-        echo "This is likely due to cross-compilation from macOS (Darwin) to Linux."
-        echo "The issue occurs even with matching architectures (aarch64-darwin → aarch64-linux)."
-        echo "The arbeitszeitapp flake does support aarch64-linux (works on native aarch64-linux VMs)."
-        echo ""
-        echo "To resolve this issue:"
-        echo "1. Build for x86_64-linux instead: ./run-deployment.sh build x86_64-linux"
-        echo "2. Use a Linux VM for building (native aarch64-linux works)"
-        echo "3. Use CI/CD pipelines for building Docker images"
-        echo "4. Use GitHub URLs instead of local paths (planned migration)"
-        echo ""
-        echo "Cross-compilation configuration (may not resolve this specific issue):"
-        echo ""
-        echo "  # Configure Nix (requires admin privileges)"
-        echo "  echo 'trusted-users = root \$USER' | sudo tee -a /etc/nix/nix.conf"
-        echo "  echo 'extra-platforms = x86_64-linux aarch64-linux' | sudo tee -a /etc/nix/nix.conf"
-        echo ""
-        echo "  # Restart Nix daemon"
-        echo "  sudo launchctl unload /Library/LaunchDaemons/org.nixos.nix-daemon.plist"
-        echo "  sudo launchctl load /Library/LaunchDaemons/org.nixos.nix-daemon.plist"
-        echo ""
-        echo "  # Verify configuration"
-        echo "  nix --extra-experimental-features nix-command config show | grep -E '(trusted-users|extra-platforms)'"
-        echo ""
-        echo "For detailed troubleshooting, see README.rst 'macOS Considerations' section."
-      fi
-      
       exit 1
     fi
     
@@ -213,24 +175,17 @@ case "$COMMAND" in
     
     echo "[INFO] Building multiarch Docker image..."
     
-    # Check if we're trying to cross-compile on macOS
-    if [[ "$(uname -s)" == "Darwin" ]]; then
-      echo "[INFO] macOS detected, cross-compilation to Linux required..."
-      
-      # Check if cross-compilation is configured
-      if ! nix --extra-experimental-features nix-command config show | grep -q "extra-platforms.*linux" 2>/dev/null; then
-        echo "ERROR: Cross-compilation not configured for macOS to Linux."
-        echo "To enable cross-compilation, you need to:"
-        echo "1. Add yourself to trusted users: echo 'trusted-users = root $USER' | sudo tee -a /etc/nix/nix.conf"
-        echo "2. Add Linux platforms: echo 'extra-platforms = x86_64-linux aarch64-linux' | sudo tee -a /etc/nix/nix.conf"
-        echo "3. Restart Nix daemon: sudo launchctl kickstart -k system/org.nixos.nix-daemon"
-        echo ""
-        echo "If cross-compilation still fails, alternative approaches:"
-        echo "- Use a Linux VM or CI/CD pipeline for building Docker images"
-        echo "- Use the GitHub Actions workflow (once the flake.nix uses GitHub URLs)"
-        echo "- Build on a Linux machine and push to a registry"
-        exit 1
-      fi
+    # Check if we're running on a supported OS
+    if [[ "$(uname -s)" != "Linux" ]]; then
+      echo "ERROR: Multiarch Docker image building is only supported on Linux."
+      echo "Detected OS: $(uname -s)-$(uname -m)"
+      echo ""
+      echo "This deployment requires Linux containers and is designed to run on Linux hosts."
+      echo "To build Docker images on other operating systems, please use:"
+      echo "- A Linux VM (x86_64 or aarch64)"
+      echo "- GitHub Actions or other CI/CD services"
+      echo "- A Linux development environment"
+      exit 1
     fi
     
     # Build for each architecture

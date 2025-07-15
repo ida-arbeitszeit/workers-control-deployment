@@ -3,6 +3,9 @@
 #
 # Usage: ./test-deployments.sh [--multiarch] [--modes MODE1,MODE2...] [--help]
 #
+# IMPORTANT: This script requires a Linux system to run.
+# If you're on macOS or Windows, use a Linux VM or CI/CD pipeline.
+#
 # Options:
 #   --multiarch    Build multiarch Docker images instead of single-arch
 #   --modes        Comma-separated list of deployment modes to test (http,https,letsencrypt)
@@ -38,6 +41,9 @@ while [[ $# -gt 0 ]]; do
     -h|--help)
       echo "Usage: $0 [--multiarch] [--modes MODE1,MODE2...] [--letsencrypt-test MODE] [--help]"
       echo
+      echo "IMPORTANT: This script requires a Linux system to run."
+      echo "If you're on macOS or Windows, use a Linux VM or CI/CD pipeline."
+      echo
       echo "Options:"
       echo "  --multiarch         Build multiarch Docker images instead of single-arch"
       echo "  --modes             Comma-separated list of deployment modes to test"
@@ -70,6 +76,19 @@ done
 check_requirements() {
   echo "Checking for required tools..."
   
+  # Check if we're running on a supported OS
+  if [[ "$(uname -s)" != "Linux" ]]; then
+    echo "ERROR: Docker deployment testing is only supported on Linux."
+    echo "Detected OS: $(uname -s)-$(uname -m)"
+    echo ""
+    echo "This deployment requires Linux containers and is designed to run on Linux hosts."
+    echo "To run tests on other operating systems, please use:"
+    echo "- A Linux VM (x86_64 or aarch64)"
+    echo "- GitHub Actions or other CI/CD services"
+    echo "- A Linux development environment"
+    return 1
+  fi
+  
   # Check for Docker
   if ! command -v docker &> /dev/null; then
     echo "ERROR: docker is not installed. Please install Docker Engine."
@@ -98,45 +117,6 @@ check_requirements() {
   if ! command -v nix &> /dev/null; then
     echo "ERROR: nix is not installed. Please install Nix package manager."
     return 1
-  fi
-  
-  # Check multiarch build capability
-  if [[ "$MULTIARCH_BUILD" == "true" ]]; then
-    local current_system
-    current_system="$(nix eval --impure --raw --expr 'builtins.currentSystem')"
-    echo "Current system: $current_system"
-    
-    # Check if we're on a system that can do multiarch builds
-    if [[ "$current_system" == *"darwin"* ]]; then
-      echo "WARNING: Multiarch builds on macOS require Nix cross-compilation to be configured."
-      echo "To enable cross-compilation:"
-      echo "1. Add yourself to trusted users: echo 'trusted-users = root \$USER' | sudo tee -a /etc/nix/nix.conf"
-      echo "2. Add Linux platforms: echo 'extra-platforms = x86_64-linux aarch64-linux' | sudo tee -a /etc/nix/nix.conf"
-      echo "3. Restart Nix daemon: sudo launchctl kickstart -k system/org.nixos.nix-daemon"
-      echo "Alternatively, run this test in a Linux VM for full multiarch testing."
-      echo "Falling back to single-arch build for current system..."
-      MULTIARCH_BUILD=false
-    elif [[ "$current_system" == "aarch64-linux" ]]; then
-      # Check if cross-compilation is configured
-      if ! nix show-config | grep -q "extra-platforms.*x86_64-linux" 2>/dev/null; then
-        echo "WARNING: Cross-compilation not configured. Cannot build x86_64-linux on aarch64-linux."
-        echo "To enable cross-compilation, either:"
-        echo "  1. Use --extra-platforms: ./run-deployment.sh build-multiarch --extra-platforms x86_64-linux"
-        echo "  2. Or add 'extra-platforms = x86_64-linux aarch64-linux' to /etc/nix/nix.conf"
-        echo "Falling back to single-arch build for current system..."
-        MULTIARCH_BUILD=false
-      fi
-    elif [[ "$current_system" == "x86_64-linux" ]]; then
-      # Check if cross-compilation is configured
-      if ! nix show-config | grep -q "extra-platforms.*aarch64-linux" 2>/dev/null; then
-        echo "WARNING: Cross-compilation not configured. Cannot build aarch64-linux on x86_64-linux."
-        echo "To enable cross-compilation, either:"
-        echo "  1. Use --extra-platforms: ./run-deployment.sh build-multiarch --extra-platforms aarch64-linux"
-        echo "  2. Or add 'extra-platforms = x86_64-linux aarch64-linux' to /etc/nix/nix.conf"
-        echo "Falling back to single-arch build for current system..."
-        MULTIARCH_BUILD=false
-      fi
-    fi
   fi
   
   # Check for proper directory structure
@@ -176,12 +156,10 @@ check_requirements() {
     else
       echo "Building single-arch Docker image..."
       if ! (cd "$script_dir/../.." && ./run-deployment.sh build); then
-        echo "ERROR: single-arch build failed."
-        echo "See error messages above for troubleshooting guidance."
+        echo "ERROR: single-arch build failed. Please check your Docker and Nix setup."
         return 1
       fi
     fi
-    
     echo "Successfully built and loaded arbeitszeitapp:latest Docker image."
   fi
   

@@ -1,6 +1,6 @@
 services:
   arbeitszeitapp:
-    image: arbeitszeitapp:latest
+    image: ${ARBEITSZEITAPP_IMAGE:-arbeitszeitapp:latest}
     environment:
       FLASK_APP: arbeitszeit_flask.wsgi:app
       ARBEITSZEITAPP_CONFIGURATION_PATH: /app/arbeitszeitapp.cfg

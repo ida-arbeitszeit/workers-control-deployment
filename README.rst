@@ -394,100 +394,89 @@ The application Docker image is built using Nix and contains:
 
 The profiling system is configured via environment variables and generates configuration dynamically at runtime, eliminating the need for static configuration files.
 
-Build options:
+**Build options:**
 
 .. code-block:: bash
 
-   # Single architecture (detects current system architecture)
+   # Single architecture (matches your current Linux system)
    ./run-deployment.sh build
    
    # Specific architecture
    ./run-deployment.sh build x86_64-linux
    ./run-deployment.sh build aarch64-linux
    
-   # Multi-architecture (both x86_64 and aarch64)
+   # Multiarch build (builds both architectures)
    ./run-deployment.sh build-multiarch
    
    # Push to registry
    ./run-deployment.sh build x86_64-linux docker.io/myuser/arbeitszeitapp:latest
    ./run-deployment.sh build-multiarch docker.io/myuser/arbeitszeitapp:latest
 
-**macOS Considerations**
+**Using Pre-built Images from Registry**
 
-Building Docker images on macOS requires cross-compilation from Darwin to Linux. This may require additional Nix configuration.
+If you're running the deployment on a non-Linux system (Windows, macOS) or want to use pre-built images, you can override the default image location:
 
-**Step-by-Step Cross-compilation Setup:**
+**Option 1: Environment Variable**
 
-1. **Check current configuration** (optional but recommended)::
+.. code-block:: bash
 
-    ./check-nix-config.sh
+   # Set the image registry location
+   export ARBEITSZEITAPP_IMAGE=myregistry/arbeitszeitapp:latest
+   
+   # Run the deployment normally
+   ./run-deployment.sh up letsencrypt
 
-   This script will diagnose your current Nix configuration and identify any issues.
+**Option 2: Pull and Tag**
 
-2. **Configure Nix daemon** (requires admin privileges):
+.. code-block:: bash
 
-   .. code-block:: bash
+   # Pull from registry and tag as expected name
+   docker pull myregistry/arbeitszeitapp:latest
+   docker tag myregistry/arbeitszeitapp:latest arbeitszeitapp:latest
+   
+   # Run the deployment normally
+   ./run-deployment.sh up letsencrypt
 
-      # Add trusted users and extra platforms
-      echo "trusted-users = root $USER" | sudo tee -a /etc/nix/nix.conf
-      echo "extra-platforms = x86_64-linux aarch64-linux" | sudo tee -a /etc/nix/nix.conf
+**Option 3: Docker Compose Override**
 
-3. **Restart the Nix daemon**:
+.. code-block:: bash
 
-   .. code-block:: bash
+   # Create override file
+   cat > docker-deployment/docker-compose.override.yml << EOF
+   services:
+     arbeitszeitapp:
+       image: myregistry/arbeitszeitapp:latest
+   EOF
+   
+   # Run the deployment normally
+   ./run-deployment.sh up letsencrypt
 
-      # Restart daemon to apply changes
-      sudo launchctl unload /Library/LaunchDaemons/org.nixos.nix-daemon.plist
-      sudo launchctl load /Library/LaunchDaemons/org.nixos.nix-daemon.plist
+This approach allows Windows servers, macOS systems, or any Docker-compatible environment to run the deployment using pre-built images without requiring a Linux build environment.
 
-4. **Verify configuration**:
+**Operating System Requirements**
 
-   .. code-block:: bash
+Building Docker images requires a Linux host system. The flake supports:
 
-      # Check that settings are applied
-      nix --extra-experimental-features nix-command config show | grep -E "(trusted-users|extra-platforms)"
+- **x86_64-linux** (Intel/AMD 64-bit)
+- **aarch64-linux** (ARM 64-bit)
 
-   You should see your username in trusted-users and the additional platforms listed.
+**Running the deployment** works on any Docker-compatible system (Windows, macOS, Linux).
 
-5. **Test cross-compilation**:
+**For non-Linux development:**
 
-   .. code-block:: bash
+If you're developing on macOS or Windows, you'll need to use a Linux environment for building:
 
-      ./run-deployment.sh build-docker
+- **Linux VM**: Set up a Linux virtual machine (Ubuntu, Debian, etc.)
+- **GitHub Actions**: Use CI/CD for building and testing
+- **Linux development server**: Use a remote Linux machine
+- **Docker Desktop with Linux containers**: For running (building still requires Linux)
 
-**Troubleshooting Cross-compilation:**
+**Common Issues:**
 
-If you encounter "Undefined error: 0" or similar cross-compilation failures:
-
-- Ensure you have sufficient disk space (cross-compilation requires significant space)
-- Verify Docker Desktop is running and configured for Linux containers
-- Check that your Nix installation supports cross-compilation features
-- Try building with increased verbosity: ``nix build --verbose --print-build-logs``
-- Clean Nix store if space is limited: ``nix-collect-garbage -d``
-- If using local path dependencies (``path:/Users/...``), ensure they are compatible with cross-compilation
-- Consider using GitHub URLs instead of local paths for dependencies
-
-**Known Issues:**
-
-- **"Undefined error: 0" during cross-compilation**: This error occurs when cross-compiling from macOS to Linux, even with matching architectures (aarch64-darwin → aarch64-linux)
-- The arbeitszeitapp flake DOES support aarch64-linux (confirmed by successful builds on native aarch64-linux VMs)
-- The issue is specific to the cross-compilation mechanism from Darwin to Linux, not missing architecture support
-- This appears to be related to how Nix handles cross-compilation from Darwin to Linux during the build process
-- The same code builds successfully on native Linux systems (including aarch64-linux VMs)
-
-**Alternative Approaches:**
-
-If cross-compilation continues to fail, consider:
-
-- Using a Linux VM or container for building (recommended for reliable builds)
-- Setting up CI/CD pipelines (GitHub Actions, etc.)
-- Building on a Linux machine and pushing to a registry
-- Using pre-built images from a registry
-- Configuring remote Linux builders in Nix configuration
-
-**Recommended Approach for macOS Users:**
-
-The most reliable approach for macOS users is to use a Linux VM (aarch64 or x86_64) for building Docker images. This avoids cross-compilation issues entirely and provides consistent build results.
+- **"unsupported system" errors**: Ensure you're running on a Linux system for building Docker images
+- **"ERROR: Docker image building is only supported on Linux"**: Use a Linux VM or CI/CD for building
+- **Docker permission errors**: Add your user to the docker group
+- **Nix not found**: Install Nix package manager on your Linux system
 
 **Production Deployment Checklist**
 
@@ -832,7 +821,7 @@ Setup and Configuration:
 .. code-block:: bash
 
    # From the project root directory
-   # For single-arch build (detects current architecture)
+   # For single-arch build (matches current Linux system architecture)
    ./run-deployment.sh build
    
    # For multiarch build
@@ -901,7 +890,7 @@ The test script will automatically:
 * Check for all required tools and configuration
 * Build the Docker image if not already present
 * Use single-arch build by default for faster testing
-* Support multiarch builds for cross-platform compatibility testing
+* Support multiarch builds for both supported Linux architectures (x86_64 and aarch64)
 * Clean up resources after testing is complete
 
 **Failure Diagnostics:**
