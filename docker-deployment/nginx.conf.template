@@ -20,14 +20,30 @@ http {
 
     server {
         listen       80;
-        server_name  localhost;
+        server_name  ${SERVER_NAME};
+        
+        # If SSL is enabled, redirect HTTP to HTTPS
+        # If SSL is disabled, serve the application directly
+        ${SSL_REDIRECT_START}
         # Redirect all HTTP to HTTPS
         return 301 https://$host$request_uri;
+        ${SSL_REDIRECT_END}
+        
+        ${HTTP_LOCATION_START}
+        location / {
+            proxy_pass         http://arbeitszeitapp;
+            proxy_set_header   Host $host;
+            proxy_set_header   X-Real-IP $remote_addr;
+            proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header   X-Forwarded-Proto $scheme;
+        }
+        ${HTTP_LOCATION_END}
     }
 
+    ${SSL_SERVER_START}
     server {
         listen       443 ssl;
-        server_name  localhost;
+        server_name  ${SERVER_NAME};
 
         ssl_certificate     /etc/nginx/certs/fullchain.pem;
         ssl_certificate_key /etc/nginx/certs/privkey.pem;
@@ -42,4 +58,5 @@ http {
             proxy_set_header   X-Forwarded-Proto $scheme;
         }
     }
+    ${SSL_SERVER_END}
 }
