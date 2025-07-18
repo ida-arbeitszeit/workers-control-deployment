@@ -1,8 +1,8 @@
 services:
   arbeitszeitapp:
     environment:
-      DATABASE_URL: ${DATABASE_URL}
-      SERVER_NAME: ${SERVER_NAME}
+      DATABASE_URL: ${DATABASE_URL:-}
+      SERVER_NAME: ${SERVER_NAME:-localhost}
       PROFILING_ENABLED: ${PROFILING_ENABLED:-false}
       PROFILING_AUTH_ENABLED: ${PROFILING_AUTH_ENABLED:-false}
       PROFILING_USERNAME: ${PROFILING_USERNAME:-}

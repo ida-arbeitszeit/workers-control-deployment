@@ -245,10 +245,11 @@ All deployment modes include these core services:
   - Persistent data storage via Docker volumes
   - Automatic health checks
   - Environment-based configuration
+  - Database URL automatically constructed from ``POSTGRES_USER``, ``POSTGRES_PASSWORD``, and ``POSTGRES_DB``
 
 **Application Service (arbeitszeitapp)**
   - Main application container built from Nix
-  - Flask development server with debug mode support
+  - Configurable server type (Flask development or uWSGI production)
   - Automatic database migrations on startup
   - Health checks via HTTP endpoints
   - Volume mounts for configuration and data
@@ -317,6 +318,34 @@ Services deployed:
 
    ./run-deployment.sh up letsencrypt
 
+**Server Configuration**
+
+The application supports two server types that can be configured via the ``SERVER_TYPE`` environment variable:
+
+**Flask Development Server** (``SERVER_TYPE=flask``, ``dev``, or ``development``):
+  - Single-threaded development server
+  - Built-in Flask development server with debugging support
+  - Suitable for development and testing
+  - **Not recommended for production use**
+
+**uWSGI Production Server** (``SERVER_TYPE=uwsgi``, ``prod``, or ``production``):
+  - Multi-process, multi-threaded production WSGI server
+  - Configured with 4 processes and 2 threads per process
+  - Optimized for production workloads
+  - **Recommended for production deployments**
+
+**Configuration Examples:**
+
+.. code-block:: bash
+
+   # Development environment
+   echo "SERVER_TYPE=flask" >> docker-deployment/.env
+   ./run-deployment.sh up http
+   
+   # Production environment
+   echo "SERVER_TYPE=uwsgi" >> docker-deployment/.env
+   ./run-deployment.sh up letsencrypt
+
 **Environment Configuration**
 
 All modes use the same ``.env`` file for configuration:
@@ -324,13 +353,16 @@ All modes use the same ``.env`` file for configuration:
 .. code-block:: bash
 
    # Database configuration
+   # DATABASE_URL is automatically constructed from these values
    POSTGRES_DB=arbeitszeitapp
    POSTGRES_USER=arbeitszeitapp
    POSTGRES_PASSWORD=your_secure_password
    
    # Application configuration
    SERVER_NAME=your-domain.com
-   DATABASE_URL=postgresql://arbeitszeitapp:your_secure_password@db/arbeitszeitapp
+   
+   # Server type configuration
+   SERVER_TYPE=flask  # Options: flask, dev, development, uwsgi, prod, production
    
    # Email configuration (optional)
    MAIL_SERVER=smtp.gmail.com

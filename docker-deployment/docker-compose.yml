@@ -6,7 +6,12 @@ services:
       ARBEITSZEITAPP_CONFIGURATION_PATH: /app/arbeitszeitapp.cfg
       MPLCONFIGDIR: /app
       MAIL_CONFIG_PATH: /app/mailconfig.json
-      SERVER_NAME: ${SERVER_NAME}
+      SERVER_NAME: ${SERVER_NAME:-localhost}
+      SERVER_TYPE: ${SERVER_TYPE:-flask}
+      # Database connection configuration
+      POSTGRES_USER: ${POSTGRES_USER:-arbeitszeitapp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-examplepassword}
+      POSTGRES_DB: ${POSTGRES_DB:-arbeitszeitapp}
     ports:
       - "5000:5000"
     depends_on:
@@ -30,9 +35,9 @@ services:
   db:
     image: postgres:15-alpine
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-arbeitszeitapp}
+      POSTGRES_USER: ${POSTGRES_USER:-arbeitszeitapp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-examplepassword}
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
