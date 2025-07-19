@@ -444,6 +444,97 @@ The profiling system is configured via environment variables and generates confi
    ./run-deployment.sh build x86_64-linux docker.io/myuser/arbeitszeitapp:latest
    ./run-deployment.sh build-multiarch docker.io/myuser/arbeitszeitapp:latest
 
+**Building ONLY the Application Docker Image**
+
+If you want to build just the arbeitszeitapp Docker image without PostgreSQL, nginx, or other services, you can use the following approaches:
+
+**Prerequisites:**
+- **Linux system required** (building only works on Linux)
+- **Nix with flakes enabled** (the build system uses Nix flakes)
+- **Docker installed** (to load and use the resulting image)
+
+**Method 1: Using run-deployment.sh (Recommended)**
+
+.. code-block:: bash
+
+   # Build for current Linux architecture
+   ./run-deployment.sh build
+
+   # Build for specific architecture
+   ./run-deployment.sh build x86_64-linux    # AMD64/Intel
+   ./run-deployment.sh build aarch64-linux   # ARM64
+
+   # Build and push to registry
+   ./run-deployment.sh build x86_64-linux docker.io/username/arbeitszeitapp:v1.0
+
+**Method 2: Direct Nix Command**
+
+.. code-block:: bash
+
+   # Build the Docker image directly with Nix
+   nix --extra-experimental-features nix-command \
+       --extra-experimental-features flakes \
+       build .#dockerImage --system x86_64-linux
+
+   # Load the image into Docker
+   docker load < result
+
+   # Clean up
+   rm -f result
+
+**Method 3: Build for Multiple Architectures**
+
+.. code-block:: bash
+
+   # Build multiarch image (both AMD64 and ARM64)
+   ./run-deployment.sh build-multiarch
+
+   # Build multiarch and push to registry
+   ./run-deployment.sh build-multiarch docker.io/username/arbeitszeitapp:v1.0
+
+**What You Get:**
+
+The build process creates a **standalone Docker image** containing:
+
+✅ **arbeitszeitapp application** with all Python dependencies  
+✅ **Runtime server options** (Flask dev server OR uWSGI production server)  
+✅ **Configuration system** that generates config files at runtime  
+✅ **Management commands** for database migrations, etc.  
+✅ **Health check endpoint** at ``/health``  
+✅ **All required system dependencies** (Python, uWSGI, etc.)
+
+**Image Details:**
+
+- **Name:** ``arbeitszeitapp:latest``
+- **Port:** Exposes port 5000
+- **User:** Runs as user ID 1000 (arbeitszeitapp)
+- **Size:** Optimized with Nix (only includes necessary dependencies)
+- **Configuration:** Uses environment variables and runtime config generation
+
+**Using the Built Image:**
+
+.. code-block:: bash
+
+   # Run with Flask development server (default)
+   docker run -p 5000:5000 arbeitszeitapp:latest
+
+   # Run with uWSGI production server
+   docker run -p 5000:5000 -e SERVER_TYPE=uwsgi arbeitszeitapp:latest
+
+   # Run with custom database connection
+   docker run -p 5000:5000 \
+     -e DATABASE_URL=postgresql://user:pass@host/db \
+     arbeitszeitapp:latest
+
+**Key Points:**
+
+🔴 **Linux Only:** Building must be done on a Linux system  
+🟢 **No Dependencies:** The image is completely self-contained  
+🟢 **Configurable:** Server type (Flask/uWSGI) configurable via environment variables  
+🟢 **Production Ready:** Includes security hardening and proper user management  
+
+The resulting image is **completely independent** and doesn't require nginx, PostgreSQL, or any other services to run - those are handled separately in the Docker Compose configurations.
+
 **Using Pre-built Images from Registry**
 
 If you're running the deployment on a non-Linux system (Windows, macOS) or want to use pre-built images, you can override the default image location:
