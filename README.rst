@@ -364,7 +364,7 @@ All modes use the same ``.env`` file for configuration:
    # Server type configuration
    SERVER_TYPE=flask  # Options: flask, dev, development, uwsgi, prod, production
    
-   # Email configuration (optional)
+   # Email configuration (required)
    MAIL_SERVER=smtp.gmail.com
    MAIL_PORT=587
    MAIL_USERNAME=your-email@gmail.com
@@ -425,17 +425,67 @@ To use file-based configurations instead of environment variables:
 
 **Mail Configuration**
 
-The application includes optional email functionality for sending notifications. Mail configuration is handled entirely via environment variables:
+The application requires email functionality for core features like user registration, password resets, and notifications. Mail configuration is handled via environment variables:
 
-- **MAIL_SERVER**: SMTP server hostname (e.g., ``smtp.gmail.com``)
+- **MAIL_SERVER**: SMTP server hostname (e.g., ``smtp.gmail.com``) - **Required**
 - **MAIL_PORT**: SMTP server port (default: 587)
-- **MAIL_USERNAME**: SMTP username/email address
-- **MAIL_PASSWORD**: SMTP password or app-specific password
-- **MAIL_DEFAULT_SENDER**: Default sender email address
+- **MAIL_USERNAME**: SMTP username/email address - **Required**
+- **MAIL_PASSWORD**: SMTP password or app-specific password - **Required**
+- **MAIL_DEFAULT_SENDER**: Default sender email address - **Required**
 - **MAIL_USE_TLS**: Enable TLS encryption (default: true)
 - **MAIL_USE_SSL**: Enable SSL encryption (default: false)
 
-If no mail server is configured, email functionality will be disabled. The mail configuration is generated dynamically at runtime from environment variables.
+**Important:** Email configuration is **required** for the application to function properly. Without valid email settings, user registration and password reset functionality will not work.
+
+**Common SMTP Providers:**
+
+.. list-table:: Popular Email Providers
+   :widths: 20 25 15 40
+   :header-rows: 1
+
+   * - Provider
+     - SMTP Server
+     - Port
+     - Notes
+   * - **Gmail**
+     - smtp.gmail.com
+     - 587
+     - Requires App Password (not your regular password)
+   * - **Outlook/Hotmail**
+     - smtp-mail.outlook.com
+     - 587
+     - Use your regular Microsoft account credentials
+   * - **Yahoo Mail**
+     - smtp.mail.yahoo.com
+     - 587
+     - Requires App Password
+   * - **SendGrid**
+     - smtp.sendgrid.net
+     - 587
+     - Professional service, requires API key as password
+   * - **Mailgun**
+     - smtp.mailgun.org
+     - 587
+     - Professional service, requires API credentials
+
+**Gmail Setup Example:**
+
+For Gmail, you need to create an "App Password" (not your regular password):
+
+.. code-block:: bash
+
+   # 1. Enable 2-Factor Authentication on your Google account
+   # 2. Go to Google Account settings > Security > App passwords
+   # 3. Generate an app password for "Mail"
+   # 4. Use this generated password in MAIL_PASSWORD
+
+   MAIL_SERVER=smtp.gmail.com
+   MAIL_PORT=587
+   MAIL_USERNAME=youremail@gmail.com
+   MAIL_PASSWORD=your_16_character_app_password
+   MAIL_DEFAULT_SENDER=youremail@gmail.com
+   MAIL_USE_TLS=true
+   MAIL_USE_SSL=false
 
 **Alternative File-Based Mail Configuration:**
 

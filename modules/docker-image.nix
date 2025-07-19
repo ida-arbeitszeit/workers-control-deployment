@@ -135,15 +135,27 @@ def _generate_mail_config():
     # Generate configuration from environment variables
     mail_server = os.environ.get("MAIL_SERVER", "")
     if not mail_server:
-        # No mail configuration provided, return empty config
+        # Email configuration is required for core functionality
+        print("WARNING: No MAIL_SERVER configured. Email functionality is required for user registration, password resets, and notifications.")
+        print("Please configure MAIL_SERVER, MAIL_USERNAME, MAIL_PASSWORD, and MAIL_DEFAULT_SENDER in your environment.")
         return {}
+    
+    # Validate required email configuration
+    mail_username = os.environ.get("MAIL_USERNAME", "")
+    mail_password = os.environ.get("MAIL_PASSWORD", "")
+    mail_default_sender = os.environ.get("MAIL_DEFAULT_SENDER", "")
+    
+    if not all([mail_username, mail_password, mail_default_sender]):
+        print("WARNING: Incomplete email configuration detected.")
+        print("Required: MAIL_SERVER, MAIL_USERNAME, MAIL_PASSWORD, MAIL_DEFAULT_SENDER")
+        print("Current configuration may cause authentication and notification failures.")
     
     return {
         "MAIL_SERVER": mail_server,
         "MAIL_PORT": os.environ.get("MAIL_PORT", "587"),
-        "MAIL_USERNAME": os.environ.get("MAIL_USERNAME", ""),
-        "MAIL_PASSWORD": os.environ.get("MAIL_PASSWORD", ""),
-        "MAIL_DEFAULT_SENDER": os.environ.get("MAIL_DEFAULT_SENDER", ""),
+        "MAIL_USERNAME": mail_username,
+        "MAIL_PASSWORD": mail_password,
+        "MAIL_DEFAULT_SENDER": mail_default_sender,
         "MAIL_USE_TLS": os.environ.get("MAIL_USE_TLS", "true").lower() == "true",
         "MAIL_USE_SSL": os.environ.get("MAIL_USE_SSL", "false").lower() == "true"
     }
