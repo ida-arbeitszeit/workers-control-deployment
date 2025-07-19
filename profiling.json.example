@@ -1,0 +1,18 @@
+{
+  "enabled": true,
+  "storage": {
+    "engine": "sqlite",
+    "FILE": "/app/data/flask-profiler.db"
+  },
+  "basicAuth": {
+    "enabled": true,
+    "username": "admin",
+    "password": "your_profiling_password"
+  },
+  "ignore": [
+    "^/static/.*",
+    "^/favicon.ico$",
+    "^/health$"
+  ],
+  "endpointRoot": "profiling"
+}

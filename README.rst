@@ -395,6 +395,34 @@ The application includes Flask-profiler integration for performance monitoring. 
 
 When enabled, profiling data is accessible at ``http://your-domain.com/profiling`` (or your configured endpoint path). The profiling configuration is generated dynamically at runtime, eliminating the need for static configuration files.
 
+**Alternative File-Based Profiling Configuration:**
+
+If you prefer to use a file-based configuration, you can create a ``profiling.json`` file and mount it into the container. See ``profiling.json.example`` for the required format. The application will automatically detect and use this file if present, taking precedence over environment variables.
+
+**Using File-Based Configurations:**
+
+To use file-based configurations instead of environment variables:
+
+.. code-block:: bash
+
+   # Copy and customize the example files
+   cp mailconfig.json.example mailconfig.json
+   cp profiling.json.example profiling.json
+   
+   # Edit the files with your settings
+   nano mailconfig.json
+   nano profiling.json
+   
+   # Mount them into the container by adding volumes to your Docker Compose override:
+   # docker-deployment/docker-compose.override.yml
+   cat >> docker-deployment/docker-compose.override.yml << EOF
+   services:
+     arbeitszeitapp:
+       volumes:
+         - ../mailconfig.json:/app/mailconfig.json:ro
+         - ../profiling.json:/app/profiling.json:ro
+   EOF
+
 **Mail Configuration**
 
 The application includes optional email functionality for sending notifications. Mail configuration is handled entirely via environment variables:
@@ -407,11 +435,11 @@ The application includes optional email functionality for sending notifications.
 - **MAIL_USE_TLS**: Enable TLS encryption (default: true)
 - **MAIL_USE_SSL**: Enable SSL encryption (default: false)
 
-If no mail server is configured, email functionality will be disabled. The mail configuration is generated dynamically at runtime, eliminating the need for static configuration files.
+If no mail server is configured, email functionality will be disabled. The mail configuration is generated dynamically at runtime from environment variables.
 
-**Alternative File-Based Configuration:**
+**Alternative File-Based Mail Configuration:**
 
-If you prefer to use a file-based configuration, you can create a ``mailconfig.json`` file and mount it into the container. See ``mailconfig.json.example`` for the required format.
+If you prefer to use a file-based configuration, you can create a ``mailconfig.json`` file and mount it into the container. See ``mailconfig.json.example`` for the required format. The application will automatically detect and use this file if present, taking precedence over environment variables.
 
 **Docker Image Building**
 

@@ -37,6 +37,7 @@ services:
       ARBEITSZEITAPP_CONFIGURATION_PATH: /app/arbeitszeitapp.cfg
       MPLCONFIGDIR: /app
       MAIL_CONFIG_PATH: /app/mailconfig.json
+      PROFILING_CONFIG_PATH: /app/profiling.json
       # Database connection configuration
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}

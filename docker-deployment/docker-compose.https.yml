@@ -29,6 +29,7 @@ services:
       ARBEITSZEITAPP_CONFIGURATION_PATH: /app/arbeitszeitapp.cfg
       MPLCONFIGDIR: /app
       MAIL_CONFIG_PATH: /app/mailconfig.json
+      PROFILING_CONFIG_PATH: /app/profiling.json
       # Ensure to set this environment variables in your .env file or directly in the environment"}"
       # Database connection configuration
       POSTGRES_USER: ${POSTGRES_USER}
