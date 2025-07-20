@@ -2,7 +2,7 @@
   description = "Implements a module for running arbeitszeitapp";
   inputs = {
     arbeitszeitapp.url = "github:ida-arbeitszeit/arbeitszeitapp";
-    nixpkgs-24-11.url = "github:NixOS/nixpkgs/nixos-24.11";
+    nixpkgs-25-05.url = "github:NixOS/nixpkgs/nixos-25.05";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
   };
@@ -10,7 +10,7 @@
   outputs =
     {
       self,
-      nixpkgs-24-11,
+      nixpkgs-25-05,
       nixpkgs-unstable,
       arbeitszeitapp,
       flake-utils,
@@ -27,6 +27,8 @@
               nodes.machine =
                 { config, ... }:
                 {
+                  virtualisation.memorySize = 2048;
+                  virtualisation.diskSize = 1024;
                   imports = [ self.nixosModules.default ];
                   nixpkgs.pkgs = nixpkgs;
                   services.arbeitszeitapp.enable = true;
@@ -80,7 +82,7 @@
               testScript = builtins.readFile testFile;
             };
           nixpkgsVersions = {
-            nixpkgs-24-11 = import nixpkgs-24-11 { inherit system; };
+            nixpkgs-25-05 = import nixpkgs-25-05 { inherit system; };
             nixpkgs-unstable = import nixpkgs-unstable { inherit system; };
           };
           makeTestMatrix =
@@ -101,7 +103,7 @@
               }
             ) { };
           testCases = {
-            lauchWebserver = makeSimpleTest tests/launchWebserver.py;
+            launchWebserver = makeSimpleTest tests/launchWebserver.py;
             launchWebserverWithProfiler = makeTestWithProfiling tests/launchWebserver.py;
             testProfiling = makeTestWithProfiling tests/testProfiling.py;
           };
