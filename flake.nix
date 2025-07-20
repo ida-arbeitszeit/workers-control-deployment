@@ -103,7 +103,7 @@
               }
             ) { };
           testCases = {
-            lauchWebserver = makeSimpleTest tests/launchWebserver.py;
+            launchWebserver = makeSimpleTest tests/launchWebserver.py;
             launchWebserverWithProfiler = makeTestWithProfiling tests/launchWebserver.py;
             testProfiling = makeTestWithProfiling tests/testProfiling.py;
           };
