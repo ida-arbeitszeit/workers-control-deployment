@@ -27,6 +27,8 @@
               nodes.machine =
                 { config, ... }:
                 {
+                  virtualisation.memorySize = 2048;
+                  virtualisation.diskSize = 1024;
                   imports = [ self.nixosModules.default ];
                   nixpkgs.pkgs = nixpkgs;
                   services.arbeitszeitapp.enable = true;
