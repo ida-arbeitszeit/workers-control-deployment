@@ -5,21 +5,8 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx.conf.template:/etc/nginx/nginx-template.conf:ro
+      - ./nginx.https.conf:/etc/nginx/nginx.conf:ro
       - ./certs:/etc/nginx/certs:ro
-    environment:
-      - SERVER_NAME=${SERVER_NAME:-localhost}
-      - SSL_ENABLED=true
-    command: >
-      sh -c "
-      export SSL_REDIRECT_START='' &&
-      export SSL_REDIRECT_END='' &&
-      export HTTP_LOCATION_START='#' &&
-      export HTTP_LOCATION_END='#' &&
-      export SSL_SERVER_START='' &&
-      export SSL_SERVER_END='' &&
-      envsubst '$$SERVER_NAME $$SSL_REDIRECT_START $$SSL_REDIRECT_END $$HTTP_LOCATION_START $$HTTP_LOCATION_END $$SSL_SERVER_START $$SSL_SERVER_END' < /etc/nginx/nginx-template.conf > /etc/nginx/nginx.conf && 
-      nginx -g 'daemon off;'"
     depends_on:
       - arbeitszeitapp
   arbeitszeitapp:

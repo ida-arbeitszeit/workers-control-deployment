@@ -16,6 +16,9 @@ services:
       MAIL_DEFAULT_SENDER: ${MAIL_DEFAULT_SENDER:-}
       MAIL_USE_TLS: ${MAIL_USE_TLS:-true}
       MAIL_USE_SSL: ${MAIL_USE_SSL:-false}
+      # Set default values to prevent warnings during testing
+      DEFAULT_EMAIL: ${DEFAULT_EMAIL:-admin@example.com}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:-admin@example.com}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:5000/health"]
       interval: 10s

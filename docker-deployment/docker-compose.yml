@@ -20,6 +20,7 @@ services:
         condition: service_healthy
     volumes:
       - arbeitszeitapp-data:/app
+      - arbeitszeitapp-state:/var/lib/arbeitszeitapp
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:5000/health"]
       interval: 30s
@@ -30,20 +31,7 @@ services:
     ports:
       - "80:80"
     volumes:
-      - ./nginx.conf.template:/etc/nginx/nginx-template.conf:ro
-    environment:
-      - SERVER_NAME=${SERVER_NAME:-localhost}
-      - SSL_ENABLED=false
-    command: >
-      sh -c "
-      export SSL_REDIRECT_START='#' &&
-      export SSL_REDIRECT_END='#' &&
-      export HTTP_LOCATION_START='' &&
-      export HTTP_LOCATION_END='' &&
-      export SSL_SERVER_START='#' &&
-      export SSL_SERVER_END='#' &&
-      envsubst '$$SERVER_NAME $$SSL_REDIRECT_START $$SSL_REDIRECT_END $$HTTP_LOCATION_START $$HTTP_LOCATION_END $$SSL_SERVER_START $$SSL_SERVER_END' < /etc/nginx/nginx-template.conf > /etc/nginx/nginx.conf && 
-      nginx -g 'daemon off;'"
+      - ./nginx.http.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - arbeitszeitapp
   db:
@@ -61,4 +49,5 @@ services:
       retries: 5
 volumes:
   arbeitszeitapp-data:
+  arbeitszeitapp-state:
   postgres-data:

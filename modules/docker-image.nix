@@ -1,6 +1,6 @@
-{ pkgs, overlay }:
+{ pkgs, overlay, system ? pkgs.system }:
 let
-  pkgs' = pkgs.extend overlay;
+  pkgs' = import pkgs.path { overlays = [ overlay ]; inherit system; };
   
   uwsgi = pkgs'.uwsgi.override { plugins = [ "python3" ]; };
   alembicFile = pkgs'.writeText "alembic.ini" ''
@@ -186,7 +186,8 @@ def _generate_profiler_config():
     return {
         "enabled": os.environ.get("PROFILING_ENABLED", "false").lower() == "true",
         "storage": {
-            "engine": "sqlite"
+            "engine": "sqlite",
+            "FILE": os.environ.get("ARBEITSZEITAPP_STATE_DIR", "/var/lib/arbeitszeitapp") + "/flask-profiler.db"
         },
         "basicAuth": {
             "enabled": os.environ.get("PROFILING_AUTH_ENABLED", "false").lower() == "true",
@@ -236,7 +237,17 @@ EOF
       ]))
     ];
     text = ''
-      ARBEITSZEITAPP_DATABASE_URI=postgresql:///arbeitszeitapp ALEMBIC_CONFIG=/app/alembic.ini alembic "$@"
+      cd /app
+      
+      # Use the same database URL construction logic as the main application
+      if [ -z "$DATABASE_URL" ] && [ -n "$POSTGRES_USER" ] && [ -n "$POSTGRES_PASSWORD" ] && [ -n "$POSTGRES_DB" ]; then
+        export DATABASE_URL="postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@db/$POSTGRES_DB"
+      fi
+      
+      # Set the database URI for alembic - fallback to default if not set
+      export ARBEITSZEITAPP_DATABASE_URI="''${DATABASE_URL:-postgresql://arbeitszeitapp:examplepassword@db/arbeitszeitapp}"
+      export ALEMBIC_CONFIG=/app/alembic.ini
+      exec alembic "$@"
     '';
 };
 in
