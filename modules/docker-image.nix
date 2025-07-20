@@ -135,9 +135,11 @@ def _generate_mail_config():
     # Generate configuration from environment variables
     mail_server = os.environ.get("MAIL_SERVER", "")
     if not mail_server:
-        # Email configuration is required for core functionality
-        print("WARNING: No MAIL_SERVER configured. Email functionality is required for user registration, password resets, and notifications.")
-        print("Please configure MAIL_SERVER, MAIL_USERNAME, MAIL_PASSWORD, and MAIL_DEFAULT_SENDER in your environment.")
+        # Only show email configuration warnings during normal app startup, not during migrations
+        if not os.environ.get("SUPPRESS_EMAIL_WARNINGS"):
+            # Email configuration is required for core functionality
+            print("WARNING: No MAIL_SERVER configured. Email functionality is required for user registration, password resets, and notifications.")
+            print("Please configure MAIL_SERVER, MAIL_USERNAME, MAIL_PASSWORD, and MAIL_DEFAULT_SENDER in your environment.")
         return {}
     
     # Validate required email configuration
@@ -146,9 +148,11 @@ def _generate_mail_config():
     mail_default_sender = os.environ.get("MAIL_DEFAULT_SENDER", "")
     
     if not all([mail_username, mail_password, mail_default_sender]):
-        print("WARNING: Incomplete email configuration detected.")
-        print("Required: MAIL_SERVER, MAIL_USERNAME, MAIL_PASSWORD, MAIL_DEFAULT_SENDER")
-        print("Current configuration may cause authentication and notification failures.")
+        # Only show email configuration warnings during normal app startup, not during migrations
+        if not os.environ.get("SUPPRESS_EMAIL_WARNINGS"):
+            print("WARNING: Incomplete email configuration detected.")
+            print("Required: MAIL_SERVER, MAIL_USERNAME, MAIL_PASSWORD, MAIL_DEFAULT_SENDER")
+            print("Current configuration may cause authentication and notification failures.")
     
     return {
         "MAIL_SERVER": mail_server,
@@ -243,6 +247,9 @@ EOF
       if [ -z "$DATABASE_URL" ] && [ -n "$POSTGRES_USER" ] && [ -n "$POSTGRES_PASSWORD" ] && [ -n "$POSTGRES_DB" ]; then
         export DATABASE_URL="postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@db/$POSTGRES_DB"
       fi
+      
+      # Set flag to suppress email warnings during migrations
+      export SUPPRESS_EMAIL_WARNINGS=true
       
       # Set the database URI for alembic - fallback to default if not set
       export ARBEITSZEITAPP_DATABASE_URI="''${DATABASE_URL:-postgresql://arbeitszeitapp:examplepassword@db/arbeitszeitapp}"
