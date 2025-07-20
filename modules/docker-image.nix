@@ -261,9 +261,18 @@ in
 pkgs'.dockerTools.buildImage {
   name = "arbeitszeitapp";
   tag = "latest";
+  created = "now";  # Use current timestamp instead of epoch
   config = {
     Cmd = [ "arbeitszeitapp-start" ];
     WorkingDir = "/app";
+    Labels = {
+      "org.opencontainers.image.title" = "Arbeitszeitapp";
+      "org.opencontainers.image.description" = "Platform to exchange products and services based on working time";
+      "org.opencontainers.image.source" = "https://github.com/ida-arbeitszeit/arbeitszeitapp";
+      "org.opencontainers.image.vendor" = "ida-arbeitszeit";
+      "org.opencontainers.image.licenses" = "AGPL-3.0";
+      "maintainer" = "ida-arbeitszeit";
+    };
     Env = [
       "FLASK_APP=arbeitszeit_flask.wsgi:app"
       "FLASK_DEBUG=1"
