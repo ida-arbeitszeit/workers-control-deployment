@@ -23,5 +23,7 @@ Update process
 - Run the tests via ``nix flake check``
 - Create a pull request on github
 
+There is a python update script in this repository, "update_repository.py",
+that automatically creates a remote branch with updated flake inputs.
 
 .. _`nix flake`: https://nixos.wiki/wiki/Flakes
