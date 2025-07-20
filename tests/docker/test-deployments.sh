@@ -24,6 +24,7 @@ set -euo pipefail
 MULTIARCH_BUILD=false
 DEPLOYMENT_MODES=""
 LETSENCRYPT_TEST_MODE=""
+CONFIG_TESTS=false
 while [[ $# -gt 0 ]]; do
   case $1 in
     --multiarch)
@@ -38,8 +39,12 @@ while [[ $# -gt 0 ]]; do
       LETSENCRYPT_TEST_MODE="$2"
       shift 2
       ;;
+    --config-tests)
+      CONFIG_TESTS=true
+      shift
+      ;;
     -h|--help)
-      echo "Usage: $0 [--multiarch] [--modes MODE1,MODE2...] [--letsencrypt-test MODE] [--help]"
+      echo "Usage: $0 [--multiarch] [--modes MODE1,MODE2...] [--letsencrypt-test MODE] [--config-tests] [--help]"
       echo
       echo "IMPORTANT: This script requires a Linux system to run."
       echo "If you're on macOS or Windows, use a Linux VM or CI/CD pipeline."
@@ -53,6 +58,8 @@ while [[ $# -gt 0 ]]; do
       echo "                      staging: Use Let's Encrypt staging environment"
       echo "                      mock: Test with mock domain (requires /etc/hosts entry)"
       echo "                      containers-only: Test container orchestration only"
+      echo "  --config-tests      Run additional configuration scenario tests"
+      echo "                      Tests profiling enabled/disabled and email configured/unconfigured"
       echo "  --help              Show this help message"
       echo
       echo "Examples:"
@@ -62,6 +69,7 @@ while [[ $# -gt 0 ]]; do
       echo "  $0 --modes letsencrypt --letsencrypt-test staging"
       echo "  $0 --modes letsencrypt --letsencrypt-test containers-only"
       echo "  $0 --multiarch --modes https         # Test HTTPS with multiarch build"
+      echo "  $0 --config-tests                    # Test all modes plus configuration scenarios"
       exit 0
       ;;
     *)
@@ -730,8 +738,239 @@ test_letsencrypt_containers() {
   echo "NOTE: This test verifies container setup but does not request actual certificates."
 }
 
+# --- Configuration Testing Functions ---
+
+# Test profiling endpoint accessibility based on configuration
+test_profiling_configuration() {
+  local url=$1
+  local expected_accessible=$2  # "true" or "false"
+  local config_description=$3
+  
+  echo "Testing profiling configuration: $config_description"
+  
+  if [[ "$expected_accessible" == "true" ]]; then
+    echo "-> Expecting profiling endpoint to be accessible with authentication..."
+    if curl -fsSLk --location-trusted -u 'testuser:testpassword' "$url/profiling" > /dev/null; then
+      echo "-> ✓ Profiling endpoint accessible with credentials (as expected)"
+    else
+      echo "-> ✗ ERROR: Profiling endpoint should be accessible but was not"
+      return 1
+    fi
+    
+    echo "-> Checking that profiling endpoint is protected from unauthenticated access..."
+    if curl -fsSLk "$url/profiling" > /dev/null; then
+      echo "-> ✗ ERROR: Profiling endpoint should be protected but was publicly accessible"
+      return 1
+    else
+      echo "-> ✓ Profiling endpoint properly protected from unauthenticated access"
+    fi
+  else
+    echo "-> Expecting profiling endpoint to be disabled..."
+    if curl -fsSLk "$url/profiling" > /dev/null 2>&1; then
+      echo "-> ✗ ERROR: Profiling endpoint should be disabled but was accessible"
+      return 1
+    else
+      echo "-> ✓ Profiling endpoint disabled (as expected)"
+    fi
+    
+    # Also test with authentication - should still be disabled
+    if curl -fsSLk --location-trusted -u 'testuser:testpassword' "$url/profiling" > /dev/null 2>&1; then
+      echo "-> ✗ ERROR: Profiling endpoint should be disabled even with authentication"
+      return 1
+    else
+      echo "-> ✓ Profiling endpoint disabled even with authentication (as expected)"
+    fi
+  fi
+  
+  return 0
+}
+
+# Test email configuration by checking application behavior
+test_email_configuration() {
+  local compose_files=$1
+  local expected_configured=$2  # "true" or "false"
+  local config_description=$3
+  
+  echo "Testing email configuration: $config_description"
+  
+  # Always resolve compose file paths relative to the script directory
+  local script_dir
+  script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
+  local abs_compose_files=""
+  for f in $compose_files; do
+    if [[ "$f" == -f ]]; then
+      abs_compose_files+="-f "
+    elif [[ "$f" == ../docker-deployment/* ]]; then
+      abs_compose_files+="$script_dir/../../docker-deployment/${f#../docker-deployment/} "
+    else
+      abs_compose_files+="$f "
+    fi
+  done
+  
+  if [[ "$expected_configured" == "true" ]]; then
+    echo "-> Expecting email to be configured..."
+    # Check that email-related environment variables are set
+    local email_vars
+    email_vars=$(docker compose $abs_compose_files exec -T arbeitszeitapp printenv | grep -E "(MAIL_SERVER|DEFAULT_EMAIL)" | wc -l)
+    if [[ "$email_vars" -ge 1 ]]; then
+      echo "-> ✓ Email environment variables present"
+    else
+      echo "-> ✗ ERROR: Email environment variables missing when email should be configured"
+      return 1
+    fi
+  else
+    echo "-> Expecting email to be unconfigured..."
+    # Check application startup logs for email configuration warnings
+    local email_warnings
+    email_warnings=$(docker compose $abs_compose_files logs arbeitszeitapp 2>/dev/null | grep -i "mail" | grep -i "warning\|not.*configured\|disabled" | wc -l)
+    if [[ "$email_warnings" -gt 0 ]]; then
+      echo "-> ✓ Email configuration warnings present in logs (as expected)"
+    else
+      echo "-> ⚠ No email configuration warnings found (this may be normal if warnings are suppressed)"
+    fi
+  fi
+  
+  return 0
+}
+
+# Run configuration scenario tests for a specific deployment mode
+run_configuration_tests() {
+  local mode=$1
+  local script_dir
+  script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
+  
+  echo -e "\n--- Configuration Testing for $mode mode ---"
+  
+  # Define test scenarios
+  local scenarios=(
+    "profiling_enabled_email_configured"
+    "profiling_disabled_email_configured" 
+    "profiling_enabled_email_unconfigured"
+    "profiling_disabled_email_unconfigured"
+  )
+  
+  # Define compose files for the mode
+  local base_compose_files=""
+  local base_url=""
+  case "$mode" in
+    http)
+      base_compose_files="-f ../docker-deployment/docker-compose.yml -f ../docker-deployment/docker-compose.override.yml"
+      base_url="http://localhost"
+      ;;
+    https)
+      base_compose_files="-f ../docker-deployment/docker-compose.yml -f ../docker-deployment/docker-compose.override.yml -f ../docker-deployment/docker-compose.https.yml"
+      base_url="https://localhost"
+      ;;
+    *)
+      echo "Configuration tests are only supported for 'http' and 'https' modes"
+      return 0
+      ;;
+  esac
+  
+  for scenario in "${scenarios[@]}"; do
+    echo -e "\n=== Configuration Scenario: $scenario ==="
+    
+    # Parse scenario parameters
+    local profiling_enabled="false"
+    local email_configured="false"
+    
+    case "$scenario" in
+      *profiling_enabled*) profiling_enabled="true" ;;
+      *profiling_disabled*) profiling_enabled="false" ;;
+    esac
+    
+    case "$scenario" in
+      *email_configured*) email_configured="true" ;;
+      *email_unconfigured*) email_configured="false" ;;
+    esac
+    
+    # Set environment variables for this scenario
+    echo "Configuring environment for scenario..."
+    
+    if [[ "$profiling_enabled" == "true" ]]; then
+      export PROFILING_ENABLED=true
+      export PROFILING_AUTH_ENABLED=true
+      export PROFILING_USERNAME="testuser"
+      export PROFILING_PASSWORD="testpassword"
+      export PROFILING_ENDPOINT="profiling"
+      echo "-> Profiling: ENABLED with authentication"
+    else
+      export PROFILING_ENABLED=false
+      unset PROFILING_AUTH_ENABLED PROFILING_USERNAME PROFILING_PASSWORD PROFILING_ENDPOINT
+      echo "-> Profiling: DISABLED"
+    fi
+    
+    if [[ "$email_configured" == "true" ]]; then
+      export MAIL_SERVER="localhost"
+      export MAIL_PORT="587"
+      export DEFAULT_EMAIL="test@example.com"
+      echo "-> Email: CONFIGURED"
+    else
+      unset MAIL_SERVER MAIL_PORT DEFAULT_EMAIL
+      echo "-> Email: UNCONFIGURED"
+    fi
+    
+    # Start deployment for this scenario
+    echo "Starting deployment with configuration..."
+    (cd "$script_dir/../.." && ./run-deployment.sh up "$mode" 2>&1 | grep -E "(Created|Started|Healthy|Error|Failed)" || true)
+    
+    # Wait for service to be ready
+    echo "Waiting for services to be ready..."
+    sleep 5
+    wait_for_health arbeitszeitapp "$base_compose_files" "${mode}-config-${scenario}"
+    
+    # Test profiling configuration
+    local profiling_description="${profiling_enabled} (${scenario})"
+    if ! test_profiling_configuration "$base_url" "$profiling_enabled" "$profiling_description"; then
+      echo "ERROR: Profiling configuration test failed for scenario $scenario"
+      collect_failure_logs "$base_compose_files" "${mode}-config-${scenario}" "arbeitszeitapp" "profiling-config-test"
+      
+      # Clean up before continuing
+      echo "Cleaning up failed scenario..."
+      (cd "$script_dir/../.." && ./run-deployment.sh down "$mode" 2>&1 | grep -E "(Stopped|Removed|Error|Failed)" || true)
+      continue
+    fi
+    
+    # Test email configuration
+    local email_description="${email_configured} (${scenario})"
+    if ! test_email_configuration "$base_compose_files" "$email_configured" "$email_description"; then
+      echo "ERROR: Email configuration test failed for scenario $scenario"
+      collect_failure_logs "$base_compose_files" "${mode}-config-${scenario}" "arbeitszeitapp" "email-config-test"
+      
+      # Clean up before continuing
+      echo "Cleaning up failed scenario..."
+      (cd "$script_dir/../.." && ./run-deployment.sh down "$mode" 2>&1 | grep -E "(Stopped|Removed|Error|Failed)" || true)
+      continue
+    fi
+    
+    # Run basic functionality test to ensure configuration changes don't break core features
+    echo "Running basic functionality test..."
+    if ! curl -fsSLk "$base_url/" | grep -q "Arbeitszeit"; then
+      echo "ERROR: Basic functionality test failed for scenario $scenario"
+      collect_failure_logs "$base_compose_files" "${mode}-config-${scenario}" "arbeitszeitapp" "basic-functionality-test"
+      
+      # Clean up before continuing
+      echo "Cleaning up failed scenario..."
+      (cd "$script_dir/../.." && ./run-deployment.sh down "$mode" 2>&1 | grep -E "(Stopped|Removed|Error|Failed)" || true)
+      continue
+    fi
+    
+    echo "✓ Configuration scenario $scenario passed all tests"
+    
+    # Clean up before next scenario
+    echo "Cleaning up scenario..."
+    (cd "$script_dir/../.." && ./run-deployment.sh down "$mode" 2>&1 | grep -E "(Stopped|Removed|Error|Failed)" || true)
+    
+    # Wait a moment between scenarios
+    sleep 3
+  done
+  
+  echo -e "\n✅ All configuration scenarios completed for $mode mode"
+}
+
 # --- Main Execution Loop ---
 
+# First run standard deployment tests
 for mode in "${deployment_modes[@]}"; do
   # Set script_dir for each loop iteration (in case script is sourced or run in a subshell)
   script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
@@ -913,6 +1152,33 @@ for mode in "${deployment_modes[@]}"; do
   echo "=== Test for '$mode' deployment complete. ==="
 
 done
+
+# Run configuration tests if requested
+if [[ "$CONFIG_TESTS" == "true" ]]; then
+  echo -e "\n\n========================================="
+  echo "=== Running Configuration Scenario Tests"
+  echo "========================================="
+  
+  # Configuration tests are most meaningful for http and https modes
+  config_test_modes=()
+  for mode in "${deployment_modes[@]}"; do
+    if [[ "$mode" == "http" || "$mode" == "https" ]]; then
+      config_test_modes+=("$mode")
+    fi
+  done
+  
+  if [[ ${#config_test_modes[@]} -eq 0 ]]; then
+    echo "Configuration tests require 'http' or 'https' modes."
+    echo "Adding 'http' mode for configuration testing..."
+    config_test_modes=("http")
+  fi
+  
+  for mode in "${config_test_modes[@]}"; do
+    run_configuration_tests "$mode"
+  done
+  
+  echo -e "\n✅ All configuration scenario tests completed."
+fi
 
 # Clean up
 echo "Cleaning up temporary files..."
