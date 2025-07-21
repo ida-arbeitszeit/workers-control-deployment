@@ -411,7 +411,7 @@ When enabled, profiling data is accessible at ``http://your-domain.com/profiling
 
 **Alternative File-Based Profiling Configuration:**
 
-If you prefer to use a file-based configuration, you can create a ``profiling.json`` file and mount it into the container. See ``profiling.json.example`` for the required format. The application will automatically detect and use this file if present, taking precedence over environment variables.
+If you prefer to use a file-based configuration, you can create a ``profiling.json`` file and mount it into the container. See ``docker-deployment/profiling.json.example`` for the required format. The application will automatically detect and use this file if present, taking precedence over environment variables.
 
 **Using File-Based Configurations:**
 
@@ -420,12 +420,12 @@ To use file-based configurations instead of environment variables:
 .. code-block:: bash
 
    # Copy and customize the example files
-   cp mailconfig.json.example mailconfig.json
-   cp profiling.json.example profiling.json
+   cp docker-deployment/mailconfig.json.example docker-deployment/mailconfig.json
+   cp docker-deployment/profiling.json.example docker-deployment/profiling.json
    
    # Edit the files with your settings
-   nano mailconfig.json
-   nano profiling.json
+   nano docker-deployment/mailconfig.json
+   nano docker-deployment/profiling.json
    
    # Mount them into the container by adding volumes to your Docker Compose override:
    # docker-deployment/docker-compose.override.yml
@@ -433,8 +433,8 @@ To use file-based configurations instead of environment variables:
    services:
      arbeitszeitapp:
        volumes:
-         - ../mailconfig.json:/app/mailconfig.json:ro
-         - ../profiling.json:/app/profiling.json:ro
+         - ./mailconfig.json:/app/mailconfig.json:ro
+         - ./profiling.json:/app/profiling.json:ro
    EOF
 
 **Mail Configuration**
@@ -503,7 +503,7 @@ For Gmail, you need to create an "App Password" (not your regular password):
 
 **Alternative File-Based Mail Configuration:**
 
-If you prefer to use a file-based configuration, you can create a ``mailconfig.json`` file and mount it into the container. See ``mailconfig.json.example`` for the required format. The application will automatically detect and use this file if present, taking precedence over environment variables.
+If you prefer to use a file-based configuration, you can create a ``mailconfig.json`` file and mount it into the container. See ``docker-deployment/mailconfig.json.example`` for the required format. The application will automatically detect and use this file if present, taking precedence over environment variables.
 
 **Docker Image Building**
 
