@@ -20,12 +20,12 @@ echo "LETSENCRYPT_EMAIL: $LETSENCRYPT_EMAIL"
 # Verify docker compose config is correct
 echo ""
 echo "=== Checking Docker Compose Configuration ==="
-docker compose -f docker-deployment/docker-compose.letsencrypt.yml config | grep -E "(SERVER_NAME|VIRTUAL_HOST|LETSENCRYPT_HOST|DEFAULT_EMAIL|LETSENCRYPT_EMAIL)"
+docker compose -f ../../docker-deployment/docker-compose.letsencrypt.yml config | grep -E "(SERVER_NAME|VIRTUAL_HOST|LETSENCRYPT_HOST|DEFAULT_EMAIL|LETSENCRYPT_EMAIL)"
 
 # Start deployment
 echo ""
 echo "=== Starting Deployment ==="
-(cd docker-deployment && ./run-deployment.sh up letsencrypt)
+(cd ../../docker-deployment && ./run-deployment.sh up letsencrypt)
 
 # Wait for containers to be ready
 echo ""
@@ -35,7 +35,7 @@ sleep 30
 # Check nginx configuration
 echo ""
 echo "=== Checking nginx-proxy Configuration ==="
-docker compose -f docker-deployment/docker-compose.letsencrypt.yml exec nginx-proxy cat /etc/nginx/conf.d/default.conf | grep -A 20 -B 5 "test.example.com"
+docker compose -f ../../docker-deployment/docker-compose.letsencrypt.yml exec nginx-proxy cat /etc/nginx/conf.d/default.conf | grep -A 20 -B 5 "test.example.com"
 
 # Test HTTP connectivity
 echo ""
@@ -51,7 +51,7 @@ fi
 # Clean up
 echo ""
 echo "=== Cleaning Up ==="
-(cd docker-deployment && ./run-deployment.sh down letsencrypt)
+(cd ../../docker-deployment && ./run-deployment.sh down letsencrypt)
 
 echo ""
 echo "=== Test Complete ==="
