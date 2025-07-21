@@ -1,6 +1,9 @@
 # Environment variables
 .env
 
+# Certificates (generated locally for HTTPS testing)
+docker-deployment/certs/
+
 # Python cache
 __pycache__/
 *.pyc
