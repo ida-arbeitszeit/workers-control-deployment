@@ -654,6 +654,151 @@ If you're running the deployment on a non-Linux system (Windows, macOS) or want 
 
 This approach allows Windows servers, macOS systems, or any Docker-compatible environment to run the deployment using pre-built images without requiring a Linux build environment.
 
+**Image Versioning and Version Management**
+
+The deployment system supports comprehensive versioning workflows for both development and production environments:
+
+**Creating Versioned Images**
+
+Build specific version tags for local development and testing:
+
+.. code-block:: bash
+
+   # Create local versioned images
+   ./run-deployment.sh build x86_64-linux arbeitszeitapp:v1.2.3
+   ./run-deployment.sh build x86_64-linux arbeitszeitapp:v1.2.4
+   ./run-deployment.sh build x86_64-linux arbeitszeitapp:v1.3.0-beta
+   
+   # Create multiarch versioned images
+   ./run-deployment.sh build-multiarch arbeitszeitapp:v1.2.3
+   ./run-deployment.sh build-multiarch arbeitszeitapp:latest
+
+**Using Specific Versions in Deployments**
+
+Deploy with specific versions using the ``ARBEITSZEITAPP_IMAGE`` environment variable:
+
+.. code-block:: bash
+
+   # Method 1: Environment variable
+   export ARBEITSZEITAPP_IMAGE=arbeitszeitapp:v1.2.3
+   ./run-deployment.sh up http
+   
+   # Method 2: .env file
+   echo "ARBEITSZEITAPP_IMAGE=arbeitszeitapp:v1.2.3" >> docker-deployment/.env
+   ./run-deployment.sh up letsencrypt
+   
+   # Method 3: One-time deployment
+   ARBEITSZEITAPP_IMAGE=arbeitszeitapp:v1.2.4 ./run-deployment.sh up https
+
+**Version Management Workflows**
+
+**Development Workflow with Versioning:**
+
+.. code-block:: bash
+
+   # Build and test different versions
+   ./run-deployment.sh build x86_64-linux arbeitszeitapp:v1.3.0-dev
+   
+   # Test the new version
+   export ARBEITSZEITAPP_IMAGE=arbeitszeitapp:v1.3.0-dev
+   ./run-deployment.sh up http
+   
+   # Run tests against specific version
+   ./tests/docker/test-deployments.sh --modes http
+   
+   # Tag as release candidate when ready
+   docker tag arbeitszeitapp:v1.3.0-dev arbeitszeitapp:v1.3.0-rc1
+   
+   # Final release
+   docker tag arbeitszeitapp:v1.3.0-rc1 arbeitszeitapp:v1.3.0
+   docker tag arbeitszeitapp:v1.3.0 arbeitszeitapp:latest
+
+**Production Release Workflow:**
+
+.. code-block:: bash
+
+   # Build release version
+   ./run-deployment.sh build x86_64-linux arbeitszeitapp:v1.2.3
+   
+   # Test in staging environment
+   export ARBEITSZEITAPP_IMAGE=arbeitszeitapp:v1.2.3
+   ./run-deployment.sh up https  # Test with HTTPS
+   
+   # Deploy to production with zero downtime
+   echo "ARBEITSZEITAPP_IMAGE=arbeitszeitapp:v1.2.3" >> docker-deployment/.env
+   ./maintenance/update-deployment.sh --mode letsencrypt --downtime zero
+
+**Registry-Based Versioning:**
+
+.. code-block:: bash
+
+   # Build and push versioned images to registry
+   ./run-deployment.sh build x86_64-linux docker.io/myorg/arbeitszeitapp:v1.2.3
+   ./run-deployment.sh build-multiarch docker.io/myorg/arbeitszeitapp:v1.2.3
+   
+   # Tag additional versions
+   docker tag docker.io/myorg/arbeitszeitapp:v1.2.3 docker.io/myorg/arbeitszeitapp:latest
+   docker push docker.io/myorg/arbeitszeitapp:latest
+   
+   # Deploy from registry
+   export ARBEITSZEITAPP_IMAGE=docker.io/myorg/arbeitszeitapp:v1.2.3
+   ./run-deployment.sh up letsencrypt
+
+**Version Rollback Strategies:**
+
+.. code-block:: bash
+
+   # Quick rollback to previous version
+   export ARBEITSZEITAPP_IMAGE=arbeitszeitapp:v1.2.2
+   ./maintenance/update-deployment.sh --mode letsencrypt --downtime minimal
+   
+   # Emergency rollback (fastest)
+   ARBEITSZEITAPP_IMAGE=arbeitszeitapp:v1.2.2 ./run-deployment.sh down letsencrypt
+   ARBEITSZEITAPP_IMAGE=arbeitszeitapp:v1.2.2 ./run-deployment.sh up letsencrypt
+
+**Version Comparison and Testing:**
+
+.. code-block:: bash
+
+   # Compare versions side by side
+   # Terminal 1: Run old version
+   export ARBEITSZEITAPP_IMAGE=arbeitszeitapp:v1.2.2
+   ./run-deployment.sh up http
+   
+   # Terminal 2: Build and run new version on different port
+   ./run-deployment.sh build x86_64-linux arbeitszeitapp:v1.2.3
+   docker run -p 5001:5000 -e SERVER_TYPE=flask arbeitszeitapp:v1.2.3
+   
+   # Test both versions
+   curl http://localhost/      # Old version
+   curl http://localhost:5001/ # New version
+
+**CI/CD Integration with Versioning:**
+
+.. code-block:: bash
+
+   # Automated versioning in CI/CD
+   VERSION=$(git describe --tags --always)
+   
+   # Build with git-based versioning
+   ./run-deployment.sh build x86_64-linux docker.io/myorg/arbeitszeitapp:$VERSION
+   ./run-deployment.sh build x86_64-linux docker.io/myorg/arbeitszeitapp:$BRANCH_NAME
+   
+   # Conditional latest tagging
+   if [ "$BRANCH_NAME" = "main" ]; then
+     docker tag docker.io/myorg/arbeitszeitapp:$VERSION docker.io/myorg/arbeitszeitapp:latest
+     docker push docker.io/myorg/arbeitszeitapp:latest
+   fi
+
+**Version Management Best Practices:**
+
+- **Semantic Versioning**: Use ``v1.2.3`` format for releases
+- **Branch Versioning**: Use ``v1.3.0-dev``, ``v1.3.0-rc1`` for development
+- **Environment Isolation**: Different versions for dev/staging/prod
+- **Rollback Ready**: Always keep previous working version available
+- **Registry Strategy**: Push stable versions to registry for distribution
+- **Tag Management**: Use ``latest`` only for stable releases
+
 **Operating System Requirements**
 
 Building Docker images requires a Linux host system. The flake supports:
