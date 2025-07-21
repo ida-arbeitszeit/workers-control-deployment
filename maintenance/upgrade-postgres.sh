@@ -34,8 +34,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # Check if we can find the required files
-if [[ ! -f "$PROJECT_ROOT/run-deployment.sh" ]]; then
-    error "Cannot find run-deployment.sh. Make sure you're in the correct project structure."
+if [[ ! -f "$PROJECT_ROOT/docker-deployment/run-deployment.sh" ]]; then
+    error "Cannot find docker-deployment/run-deployment.sh. Make sure you're in the correct project structure."
     exit 1
 fi
 
@@ -70,7 +70,7 @@ fi
 
 # Step 2: Stop deployment
 log "Step 2: Stopping deployment"
-if ./run-deployment.sh down http 2>/dev/null || ./run-deployment.sh down https 2>/dev/null || ./run-deployment.sh down letsencrypt 2>/dev/null; then
+if (cd docker-deployment && ./run-deployment.sh down http) 2>/dev/null || (cd docker-deployment && ./run-deployment.sh down https) 2>/dev/null || (cd docker-deployment && ./run-deployment.sh down letsencrypt) 2>/dev/null; then
     log "Deployment stopped"
 else
     warn "Could not stop deployment (it might not be running)"
@@ -117,7 +117,7 @@ if [[ -n "${DEPLOYMENT_MODE:-}" ]]; then
 else
     read -p "Which deployment mode? (http/https/letsencrypt) " -r mode
 fi
-if ./run-deployment.sh up "$mode"; then
+if (cd docker-deployment && ./run-deployment.sh up "$mode"); then
     log "Deployment started with PostgreSQL $NEW_VERSION"
 else
     error "Failed to start deployment"

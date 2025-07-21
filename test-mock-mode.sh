@@ -25,7 +25,7 @@ docker compose -f docker-deployment/docker-compose.letsencrypt.yml config | grep
 # Start deployment
 echo ""
 echo "=== Starting Deployment ==="
-./run-deployment.sh up letsencrypt
+(cd docker-deployment && ./run-deployment.sh up letsencrypt)
 
 # Wait for containers to be ready
 echo ""
@@ -51,7 +51,7 @@ fi
 # Clean up
 echo ""
 echo "=== Cleaning Up ==="
-./run-deployment.sh down letsencrypt
+(cd docker-deployment && ./run-deployment.sh down letsencrypt)
 
 echo ""
 echo "=== Test Complete ==="

@@ -64,8 +64,8 @@ case "$COMMAND" in
     fi
     MODE="$ARG2"
     
-    # Change to the docker-deployment directory
-    cd "$(dirname "$0")/docker-deployment"
+    # Change to the docker-deployment directory (we're already here)
+    cd "$(dirname "$0")"
     
     # Set compose files based on mode
     case "$MODE" in
@@ -142,18 +142,18 @@ case "$COMMAND" in
     
     echo "[INFO] Building Docker image for $ARCH..."
     
-    # Build the image
-    if ! nix --extra-experimental-features nix-command --extra-experimental-features flakes build .#dockerImage --system "$ARCH"; then
+    # Build the image (go to parent directory for flake.nix)
+    if ! (cd .. && nix --extra-experimental-features nix-command --extra-experimental-features flakes build .#dockerImage --system "$ARCH"); then
       echo "ERROR: Failed to build $ARCH image"
       exit 1
     fi
     
     # Load image into Docker
     echo "[INFO] Loading Docker image..."
-    docker load < result
+    docker load < ../result
     
     # Clean up build result
-    rm -f result
+    rm -f ../result
     
     if [ -n "$REGISTRY" ]; then
       echo "[INFO] Pushing to registry: $REGISTRY"
@@ -190,23 +190,23 @@ case "$COMMAND" in
     
     # Build for each architecture
     echo "[INFO] Building x86_64-linux image..."
-    if ! nix --extra-experimental-features nix-command --extra-experimental-features flakes build .#dockerImage --system x86_64-linux; then
+    if ! (cd .. && nix --extra-experimental-features nix-command --extra-experimental-features flakes build .#dockerImage --system x86_64-linux); then
       echo "ERROR: Failed to build x86_64-linux image"
       exit 1
     fi
-    mv result result-x86_64-linux
+    mv ../result ../result-x86_64-linux
     
     echo "[INFO] Building aarch64-linux image..."
-    if ! nix --extra-experimental-features nix-command --extra-experimental-features flakes build .#dockerImage --system aarch64-linux; then
+    if ! (cd .. && nix --extra-experimental-features nix-command --extra-experimental-features flakes build .#dockerImage --system aarch64-linux); then
       echo "ERROR: Failed to build aarch64-linux image"
       exit 1
     fi
-    mv result result-aarch64-linux
+    mv ../result ../result-aarch64-linux
     
     # Load images into Docker
     echo "[INFO] Loading Docker images..."
-    docker load < result-x86_64-linux
-    docker load < result-aarch64-linux
+    docker load < ../result-x86_64-linux
+    docker load < ../result-aarch64-linux
     
     # Tag images with architecture-specific tags
     docker tag arbeitszeitapp:latest arbeitszeitapp:latest-amd64
@@ -222,7 +222,7 @@ case "$COMMAND" in
     docker manifest annotate arbeitszeitapp:latest arbeitszeitapp:latest-arm64 --arch arm64
     
     # Clean up architecture-specific tags and build results
-    rm -f result-x86_64-linux result-aarch64-linux
+    rm -f ../result-x86_64-linux ../result-aarch64-linux
     docker rmi arbeitszeitapp:latest-amd64 arbeitszeitapp:latest-arm64 2>/dev/null || true
     
     if [ -n "$REGISTRY" ]; then

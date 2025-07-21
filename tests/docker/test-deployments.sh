@@ -157,13 +157,13 @@ check_requirements() {
     # Check if user wants to build multiarch
     if [[ "$MULTIARCH_BUILD" == "true" ]]; then
       echo "Building multiarch Docker images..."
-      if ! (cd "$script_dir/../.." && ./run-deployment.sh build-multiarch); then
+      if ! (cd "$script_dir/../../docker-deployment" && ./run-deployment.sh build-multiarch); then
         echo "ERROR: multiarch build failed. Please check your Docker and Nix setup."
         return 1
       fi
     else
       echo "Building single-arch Docker image..."
-      if ! (cd "$script_dir/../.." && ./run-deployment.sh build); then
+      if ! (cd "$script_dir/../../docker-deployment" && ./run-deployment.sh build); then
         echo "ERROR: single-arch build failed. Please check your Docker and Nix setup."
         return 1
       fi
@@ -912,7 +912,7 @@ run_configuration_tests() {
     
     # Start deployment for this scenario
     echo "Starting deployment with configuration..."
-    (cd "$script_dir/../.." && ./run-deployment.sh up "$mode" 2>&1 | grep -E "(Created|Started|Healthy|Error|Failed)" || true)
+    (cd "$script_dir/../../docker-deployment" && ./run-deployment.sh up "$mode" 2>&1 | grep -E "(Created|Started|Healthy|Error|Failed)" || true)
     
     # Wait for service to be ready
     echo "Waiting for services to be ready..."
@@ -927,7 +927,7 @@ run_configuration_tests() {
       
       # Clean up before continuing
       echo "Cleaning up failed scenario..."
-      (cd "$script_dir/../.." && ./run-deployment.sh down "$mode" 2>&1 | grep -E "(Stopped|Removed|Error|Failed)" || true)
+      (cd "$script_dir/../../docker-deployment" && ./run-deployment.sh down "$mode" 2>&1 | grep -E "(Stopped|Removed|Error|Failed)" || true)
       continue
     fi
     
@@ -939,7 +939,7 @@ run_configuration_tests() {
       
       # Clean up before continuing
       echo "Cleaning up failed scenario..."
-      (cd "$script_dir/../.." && ./run-deployment.sh down "$mode" 2>&1 | grep -E "(Stopped|Removed|Error|Failed)" || true)
+      (cd "$script_dir/../../docker-deployment" && ./run-deployment.sh down "$mode" 2>&1 | grep -E "(Stopped|Removed|Error|Failed)" || true)
       continue
     fi
     
@@ -951,7 +951,7 @@ run_configuration_tests() {
       
       # Clean up before continuing
       echo "Cleaning up failed scenario..."
-      (cd "$script_dir/../.." && ./run-deployment.sh down "$mode" 2>&1 | grep -E "(Stopped|Removed|Error|Failed)" || true)
+      (cd "$script_dir/../../docker-deployment" && ./run-deployment.sh down "$mode" 2>&1 | grep -E "(Stopped|Removed|Error|Failed)" || true)
       continue
     fi
     
@@ -959,7 +959,7 @@ run_configuration_tests() {
     
     # Clean up before next scenario
     echo "Cleaning up scenario..."
-    (cd "$script_dir/../.." && ./run-deployment.sh down "$mode" 2>&1 | grep -E "(Stopped|Removed|Error|Failed)" || true)
+    (cd "$script_dir/../../docker-deployment" && ./run-deployment.sh down "$mode" 2>&1 | grep -E "(Stopped|Removed|Error|Failed)" || true)
     
     # Wait a moment between scenarios
     sleep 3
@@ -1076,7 +1076,7 @@ for mode in "${deployment_modes[@]}"; do
 
   # Start deployment (suppress Docker Compose progress animation)
   echo "Starting deployment..."
-  (cd "$script_dir/../.." && ./run-deployment.sh up "$mode" 2>&1 | grep -E "(Created|Started|Healthy|Error|Failed)" || true)
+  (cd "$script_dir/../../docker-deployment" && ./run-deployment.sh up "$mode" 2>&1 | grep -E "(Created|Started|Healthy|Error|Failed)" || true)
   
   # Additional wait for containers to fully start
   echo "Waiting for containers to be ready..."
@@ -1147,7 +1147,7 @@ for mode in "${deployment_modes[@]}"; do
 
   # Tear down (suppress Docker Compose progress animation)
   echo "Tearing down '$mode' deployment..."
-  (cd "$script_dir/../.." && ./run-deployment.sh down "$mode" 2>&1 | grep -E "(Stopped|Removed|Error|Failed)" || true)
+  (cd "$script_dir/../../docker-deployment" && ./run-deployment.sh down "$mode" 2>&1 | grep -E "(Stopped|Removed|Error|Failed)" || true)
 
   echo "=== Test for '$mode' deployment complete. ==="
 

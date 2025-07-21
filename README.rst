@@ -42,13 +42,13 @@ All Docker deployment scenarios are configured using a `.env` file. Before you b
 
 Now, edit the `.env` file to set your `SERVER_NAME`, database credentials, and email address.
 
-A helper script `run-deployment.sh` is provided to simplify running each scenario.
+A helper script `docker-deployment/run-deployment.sh` is provided to simplify running each scenario.
 
 **Script Overview**
 
 The deployment includes two main scripts for different purposes:
 
-1. **`run-deployment.sh`** - Day-to-day deployment operations
+1. **`docker-deployment/run-deployment.sh`** - Day-to-day deployment operations
 2. **`maintenance/update-deployment.sh`** - Comprehensive deployment updates
 
 **run-deployment.sh vs update-deployment.sh**
@@ -95,6 +95,7 @@ The deployment includes two main scripts for different purposes:
 .. code-block:: bash
 
    # Development examples
+   cd docker-deployment
    ./run-deployment.sh up http              # Start development environment
    ./run-deployment.sh down http            # Stop development environment
    ./run-deployment.sh build                # Build latest changes
@@ -132,6 +133,7 @@ The deployment includes two main scripts for different purposes:
    # Edit .env file with your settings
    
    # Start development environment
+   cd docker-deployment
    ./run-deployment.sh up http
    
    # Make code changes, then rebuild and restart
@@ -140,6 +142,7 @@ The deployment includes two main scripts for different purposes:
    ./run-deployment.sh up http
    
    # Or use update script for comprehensive rebuild
+   cd ..
    ./maintenance/update-deployment.sh --mode http --skip-flake-update
 
 **Production Deployment:**
@@ -147,10 +150,12 @@ The deployment includes two main scripts for different purposes:
 .. code-block:: bash
 
    # Initial production deployment
+   cd docker-deployment
    ./run-deployment.sh build
    ./run-deployment.sh up letsencrypt
    
    # Regular maintenance (weekly/monthly)
+   cd ..
    ./maintenance/update-deployment.sh --mode letsencrypt --downtime zero
    
    # Emergency updates
@@ -164,18 +169,23 @@ The deployment includes two main scripts for different purposes:
 .. code-block:: bash
 
    # Build and push (in CI)
+   cd docker-deployment
    ./run-deployment.sh build x86_64-linux registry/app:$VERSION
    ./run-deployment.sh build-multiarch registry/app:latest
    
    # Deploy (in CD)
+   cd ..
    ./maintenance/update-deployment.sh --mode letsencrypt --downtime zero --skip-flake-update
 
 **Deployment Script Usage (run-deployment.sh):**
 
-The `run-deployment.sh` script handles individual deployment operations:
+The `docker-deployment/run-deployment.sh` script handles individual deployment operations:
 
 .. code-block:: bash
 
+   # Navigate to the deployment directory
+   cd docker-deployment
+   
    # Start deployments
    ./run-deployment.sh up http          # HTTP mode
    ./run-deployment.sh up https         # HTTPS mode
@@ -228,6 +238,7 @@ To stop the services for any scenario, use the `down` command with the correspon
 
 .. code-block:: bash
 
+   cd docker-deployment
    ./run-deployment.sh down letsencrypt
 
 Docker Deployment Architecture
@@ -276,6 +287,7 @@ Services deployed:
 
 .. code-block:: bash
 
+   cd docker-deployment
    ./run-deployment.sh up http
 
 **HTTPS Mode (Manual Certificates)**
@@ -297,6 +309,7 @@ Services deployed:
 
 .. code-block:: bash
 
+   cd docker-deployment
    ./run-deployment.sh up https
 
 **Let's Encrypt Mode (Automatic SSL)**
@@ -316,6 +329,7 @@ Services deployed:
 
 .. code-block:: bash
 
+   cd docker-deployment
    ./run-deployment.sh up letsencrypt
 
 **Server Configuration**
@@ -535,6 +549,9 @@ If you want to build just the arbeitszeitapp Docker image without PostgreSQL, ng
 
 .. code-block:: bash
 
+   # Navigate to deployment directory
+   cd docker-deployment
+
    # Build for current Linux architecture
    ./run-deployment.sh build
 
@@ -549,7 +566,7 @@ If you want to build just the arbeitszeitapp Docker image without PostgreSQL, ng
 
 .. code-block:: bash
 
-   # Build the Docker image directly with Nix
+   # Build the Docker image directly with Nix (from project root)
    nix --extra-experimental-features nix-command \
        --extra-experimental-features flakes \
        build .#dockerImage --system x86_64-linux
@@ -565,6 +582,7 @@ If you want to build just the arbeitszeitapp Docker image without PostgreSQL, ng
 .. code-block:: bash
 
    # Build multiarch image (both AMD64 and ARM64)
+   cd docker-deployment
    ./run-deployment.sh build-multiarch
 
    # Build multiarch and push to registry
@@ -697,6 +715,7 @@ Deploy with specific versions using the ``ARBEITSZEITAPP_IMAGE`` environment var
 .. code-block:: bash
 
    # Build and test different versions
+   cd docker-deployment
    ./run-deployment.sh build x86_64-linux arbeitszeitapp:v1.3.0-dev
    
    # Test the new version
@@ -704,7 +723,8 @@ Deploy with specific versions using the ``ARBEITSZEITAPP_IMAGE`` environment var
    ./run-deployment.sh up http
    
    # Run tests against specific version
-   ./tests/docker/test-deployments.sh --modes http
+   cd ../tests/docker
+   ./test-deployments.sh --modes http
    
    # Tag as release candidate when ready
    docker tag arbeitszeitapp:v1.3.0-dev arbeitszeitapp:v1.3.0-rc1
@@ -718,6 +738,7 @@ Deploy with specific versions using the ``ARBEITSZEITAPP_IMAGE`` environment var
 .. code-block:: bash
 
    # Build release version
+   cd docker-deployment
    ./run-deployment.sh build x86_64-linux arbeitszeitapp:v1.2.3
    
    # Test in staging environment
@@ -725,7 +746,8 @@ Deploy with specific versions using the ``ARBEITSZEITAPP_IMAGE`` environment var
    ./run-deployment.sh up https  # Test with HTTPS
    
    # Deploy to production with zero downtime
-   echo "ARBEITSZEITAPP_IMAGE=arbeitszeitapp:v1.2.3" >> docker-deployment/.env
+   echo "ARBEITSZEITAPP_IMAGE=arbeitszeitapp:v1.2.3" >> .env
+   cd ..
    ./maintenance/update-deployment.sh --mode letsencrypt --downtime zero
 
 **Registry-Based Versioning:**
@@ -741,6 +763,7 @@ Deploy with specific versions using the ``ARBEITSZEITAPP_IMAGE`` environment var
    docker push docker.io/myorg/arbeitszeitapp:latest
    
    # Deploy from registry
+   cd docker-deployment
    export ARBEITSZEITAPP_IMAGE=docker.io/myorg/arbeitszeitapp:v1.2.3
    ./run-deployment.sh up letsencrypt
 
@@ -749,10 +772,13 @@ Deploy with specific versions using the ``ARBEITSZEITAPP_IMAGE`` environment var
 .. code-block:: bash
 
    # Quick rollback to previous version
+   cd docker-deployment
    export ARBEITSZEITAPP_IMAGE=arbeitszeitapp:v1.2.2
+   cd ..
    ./maintenance/update-deployment.sh --mode letsencrypt --downtime minimal
    
    # Emergency rollback (fastest)
+   cd docker-deployment
    ARBEITSZEITAPP_IMAGE=arbeitszeitapp:v1.2.2 ./run-deployment.sh down letsencrypt
    ARBEITSZEITAPP_IMAGE=arbeitszeitapp:v1.2.2 ./run-deployment.sh up letsencrypt
 
@@ -762,6 +788,7 @@ Deploy with specific versions using the ``ARBEITSZEITAPP_IMAGE`` environment var
 
    # Compare versions side by side
    # Terminal 1: Run old version
+   cd docker-deployment
    export ARBEITSZEITAPP_IMAGE=arbeitszeitapp:v1.2.2
    ./run-deployment.sh up http
    
@@ -778,6 +805,7 @@ Deploy with specific versions using the ``ARBEITSZEITAPP_IMAGE`` environment var
 .. code-block:: bash
 
    # Automated versioning in CI/CD
+   cd docker-deployment
    VERSION=$(git describe --tags --always)
    
    # Build with git-based versioning
