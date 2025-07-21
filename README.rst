@@ -49,7 +49,7 @@ A helper script `docker-deployment/run-deployment.sh` is provided to simplify ru
 The deployment includes two main scripts for different purposes:
 
 1. **`docker-deployment/run-deployment.sh`** - Day-to-day deployment operations
-2. **`maintenance/update-deployment.sh`** - Comprehensive deployment updates
+2. **`docker-deployment/maintenance/update-deployment.sh`** - Comprehensive deployment updates
 
 **run-deployment.sh vs update-deployment.sh**
 
@@ -58,8 +58,7 @@ The deployment includes two main scripts for different purposes:
    :header-rows: 1
 
    * - Aspect
-     - run-deployment.sh
-     - update-deployment.sh
+     - docker-deployment/maintenance/update-deployment.sh
    * - **Purpose**
      - Single deployment operations
      - Comprehensive updates & upgrades
@@ -104,7 +103,7 @@ The deployment includes two main scripts for different purposes:
    ./run-deployment.sh build x86_64-linux registry/app:$VERSION
    ./run-deployment.sh build-multiarch registry/app:latest
 
-**Use `update-deployment.sh` for:**
+**Use `docker-deployment/maintenance/update-deployment.sh` for:**
 
 - **Production updates**: Updating live production deployments
 - **Scheduled maintenance**: Regular updates with dependency management
@@ -115,12 +114,12 @@ The deployment includes two main scripts for different purposes:
 .. code-block:: bash
 
    # Production examples
-   ./maintenance/update-deployment.sh --mode letsencrypt --downtime zero
-   ./maintenance/update-deployment.sh --mode letsencrypt --postgres 16
+   ./docker-deployment/maintenance/update-deployment.sh --mode letsencrypt --downtime zero
+   ./docker-deployment/maintenance/update-deployment.sh --mode letsencrypt --postgres 16
    
    # Maintenance examples
-   ./maintenance/update-deployment.sh --mode letsencrypt --downtime minimal
-   ./maintenance/update-deployment.sh --mode http --skip-flake-update
+   ./docker-deployment/maintenance/update-deployment.sh --mode letsencrypt --downtime minimal
+   ./docker-deployment/maintenance/update-deployment.sh --mode http --skip-flake-update
 
 **Typical Workflow Examples:**
 
@@ -143,7 +142,7 @@ The deployment includes two main scripts for different purposes:
    
    # Or use update script for comprehensive rebuild
    cd ..
-   ./maintenance/update-deployment.sh --mode http --skip-flake-update
+   ./docker-deployment/maintenance/update-deployment.sh --mode http --skip-flake-update
 
 **Production Deployment:**
 
@@ -156,13 +155,13 @@ The deployment includes two main scripts for different purposes:
    
    # Regular maintenance (weekly/monthly)
    cd ..
-   ./maintenance/update-deployment.sh --mode letsencrypt --downtime zero
+   ./docker-deployment/maintenance/update-deployment.sh --mode letsencrypt --downtime zero
    
    # Emergency updates
-   ./maintenance/update-deployment.sh --mode letsencrypt --downtime minimal --skip-flake-update
+   ./docker-deployment/maintenance/update-deployment.sh --mode letsencrypt --downtime minimal --skip-flake-update
    
    # Major upgrades
-   ./maintenance/update-deployment.sh --mode letsencrypt --postgres 16 --downtime full
+   ./docker-deployment/maintenance/update-deployment.sh --mode letsencrypt --postgres 16 --downtime full
 
 **CI/CD Pipeline:**
 
@@ -175,7 +174,7 @@ The deployment includes two main scripts for different purposes:
    
    # Deploy (in CD)
    cd ..
-   ./maintenance/update-deployment.sh --mode letsencrypt --downtime zero --skip-flake-update
+   ./docker-deployment/maintenance/update-deployment.sh --mode letsencrypt --downtime zero --skip-flake-update
 
 **Deployment Script Usage (run-deployment.sh):**
 
@@ -748,7 +747,7 @@ Deploy with specific versions using the ``ARBEITSZEITAPP_IMAGE`` environment var
    # Deploy to production with zero downtime
    echo "ARBEITSZEITAPP_IMAGE=arbeitszeitapp:v1.2.3" >> .env
    cd ..
-   ./maintenance/update-deployment.sh --mode letsencrypt --downtime zero
+   ./docker-deployment/maintenance/update-deployment.sh --mode letsencrypt --downtime zero
 
 **Registry-Based Versioning:**
 
@@ -775,7 +774,7 @@ Deploy with specific versions using the ``ARBEITSZEITAPP_IMAGE`` environment var
    cd docker-deployment
    export ARBEITSZEITAPP_IMAGE=arbeitszeitapp:v1.2.2
    cd ..
-   ./maintenance/update-deployment.sh --mode letsencrypt --downtime minimal
+   ./docker-deployment/maintenance/update-deployment.sh --mode letsencrypt --downtime minimal
    
    # Emergency rollback (fastest)
    cd docker-deployment
@@ -905,18 +904,18 @@ The deployment includes comprehensive tools for monitoring and maintenance:
 
 **Unified Update Script**
 
-The ``maintenance/update-deployment.sh`` script provides a comprehensive solution for deployment updates:
+The ``docker-deployment/maintenance/update-deployment.sh`` script provides a comprehensive solution for deployment updates:
 
 .. code-block:: bash
 
    # Show all available options
-   ./maintenance/update-deployment.sh --help
+   ./docker-deployment/maintenance/update-deployment.sh --help
    
    # Standard production update
-   ./maintenance/update-deployment.sh --mode letsencrypt --downtime zero
+   ./docker-deployment/maintenance/update-deployment.sh --mode letsencrypt --downtime zero
    
    # Emergency update with full restart
-   ./maintenance/update-deployment.sh --mode letsencrypt --downtime full --verbose
+   ./docker-deployment/maintenance/update-deployment.sh --mode letsencrypt --downtime full --verbose
 
 **Monitoring Commands**
 
@@ -956,16 +955,16 @@ A comprehensive update script is provided to handle all aspects of deployment up
 .. code-block:: bash
 
    # Standard update with minimal downtime
-   ./maintenance/update-deployment.sh --mode letsencrypt
+   ./docker-deployment/maintenance/update-deployment.sh --mode letsencrypt
    
    # Zero-downtime update for production
-   ./maintenance/update-deployment.sh --mode letsencrypt --downtime zero
+   ./docker-deployment/maintenance/update-deployment.sh --mode letsencrypt --downtime zero
    
    # Full restart with PostgreSQL upgrade
-   ./maintenance/update-deployment.sh --mode letsencrypt --downtime full --postgres 16
+   ./docker-deployment/maintenance/update-deployment.sh --mode letsencrypt --downtime full --postgres 16
    
    # Quick update skipping flake updates
-   ./maintenance/update-deployment.sh --mode http --skip-flake-update
+   ./docker-deployment/maintenance/update-deployment.sh --mode http --skip-flake-update
 
 **Update Script Features:**
 
@@ -987,7 +986,7 @@ The update script automatically handles:
 
 .. code-block:: bash
 
-   Usage: ./maintenance/update-deployment.sh [OPTIONS]
+   Usage: ./docker-deployment/maintenance/update-deployment.sh [OPTIONS]
    
    OPTIONS:
        -m, --mode MODE          Deployment mode (http, https, letsencrypt)
@@ -1085,7 +1084,7 @@ The deployment update script can automatically handle PostgreSQL upgrades:
 .. code-block:: bash
 
    # Upgrade PostgreSQL as part of deployment update
-   ./maintenance/update-deployment.sh --mode letsencrypt --postgres 16
+   ./docker-deployment/maintenance/update-deployment.sh --mode letsencrypt --postgres 16
    
    # The script will automatically:
    # 1. Update flake inputs
@@ -1104,7 +1103,7 @@ For standalone PostgreSQL upgrades, a dedicated script is provided:
 .. code-block:: bash
 
    # Upgrade from PostgreSQL 15 to 16
-   ./maintenance/upgrade-postgres.sh 15 16
+   ./docker-deployment/maintenance/upgrade-postgres.sh 15 16
 
 **Note**: This script requires manual confirmation before deleting data.
 

@@ -7,7 +7,7 @@ set -euo pipefail
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 BACKUP_DIR="$PROJECT_ROOT/backups"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 
@@ -170,7 +170,7 @@ check_prerequisites() {
         exit 1
     fi
     
-    if [[ ! -f "run-deployment.sh" ]]; then
+    if [[ ! -f "docker-deployment/run-deployment.sh" ]]; then
         error "run-deployment.sh not found. Make sure you're in the correct project directory."
         exit 1
     fi
@@ -266,13 +266,13 @@ perform_postgres_upgrade() {
     mkdir -p "$BACKUP_DIR"
     
     # Use the existing upgrade script with automation mode
-    if [[ -f "maintenance/upgrade-postgres.sh" ]]; then
+    if [[ -f "$SCRIPT_DIR/upgrade-postgres.sh" ]]; then
         # Set environment variables for automated mode
         export AUTOMATED_MODE=true
         export DEPLOYMENT_MODE="$DEPLOYMENT_MODE"
         
         # Run the upgrade script
-        bash maintenance/upgrade-postgres.sh "$old_version" "$new_version"
+        bash "$SCRIPT_DIR/upgrade-postgres.sh" "$old_version" "$new_version"
         log "PostgreSQL upgrade completed"
     else
         error "PostgreSQL upgrade script not found"
@@ -289,7 +289,7 @@ build_docker_image() {
         build_args="--verbose"
     fi
     
-    if ./run-deployment.sh build $build_args; then
+    if docker-deployment/run-deployment.sh build $build_args; then
         log "Docker image built successfully"
     else
         error "Failed to build Docker image"
@@ -340,7 +340,7 @@ update_deployment() {
             ;;
         full)
             log "Performing full restart..."
-            if ./run-deployment.sh down "$DEPLOYMENT_MODE" && ./run-deployment.sh up "$DEPLOYMENT_MODE"; then
+            if docker-deployment/run-deployment.sh down "$DEPLOYMENT_MODE" && docker-deployment/run-deployment.sh up "$DEPLOYMENT_MODE"; then
                 log "Full restart completed"
             else
                 error "Full restart failed"
