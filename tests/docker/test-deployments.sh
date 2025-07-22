@@ -261,6 +261,15 @@ cleanup() {
     esac
     docker compose $compose_files down -v --remove-orphans || true
   done
+  
+  # Clean up test certificates from docker-deployment directory
+  if [[ -f "$script_dir/../../docker-deployment/certs/fullchain.pem" ]] || [[ -f "$script_dir/../../docker-deployment/certs/privkey.pem" ]]; then
+    echo "Cleaning up test certificates from deployment directory..."
+    rm -f "$script_dir/../../docker-deployment/certs/fullchain.pem" "$script_dir/../../docker-deployment/certs/privkey.pem"
+    # Remove certs directory if it's empty
+    rmdir "$script_dir/../../docker-deployment/certs" 2>/dev/null || true
+  fi
+  
   # Optionally remove test images (uncomment if you want to remove the image)
   # docker image rm arbeitszeitapp:latest || true
   echo "Cleanup complete."
@@ -860,6 +869,23 @@ run_configuration_tests() {
       base_url="http://localhost"
       ;;
     https)
+      # Generate self-signed certificates for HTTPS testing if they don't exist
+      if [[ ! -f "$script_dir/certs/fullchain.pem" ]] || [[ ! -f "$script_dir/certs/privkey.pem" ]]; then
+        echo "Generating self-signed SSL certificates for HTTPS testing..."
+        if ! "$script_dir/generate-test-certs.sh"; then
+          echo "ERROR: Failed to generate SSL certificates for HTTPS testing"
+          return 1
+        fi
+      else
+        echo "Using existing SSL certificates for HTTPS testing"
+      fi
+      
+      # Copy test certificates to docker-deployment/certs for deployment
+      echo "Copying test certificates to deployment directory..."
+      mkdir -p "$script_dir/../../docker-deployment/certs"
+      cp "$script_dir/certs/fullchain.pem" "$script_dir/../../docker-deployment/certs/"
+      cp "$script_dir/certs/privkey.pem" "$script_dir/../../docker-deployment/certs/"
+      
       base_compose_files="-f ../docker-deployment/docker-compose.yml -f ../docker-deployment/docker-compose.override.yml -f ../docker-deployment/docker-compose.https.yml"
       base_url="https://localhost"
       ;;
@@ -990,6 +1016,23 @@ for mode in "${deployment_modes[@]}"; do
       url="http://localhost"
       ;;
     https)
+      # Generate self-signed certificates for HTTPS testing if they don't exist
+      if [[ ! -f "$script_dir/certs/fullchain.pem" ]] || [[ ! -f "$script_dir/certs/privkey.pem" ]]; then
+        echo "Generating self-signed SSL certificates for HTTPS testing..."
+        if ! "$script_dir/generate-test-certs.sh"; then
+          echo "ERROR: Failed to generate SSL certificates for HTTPS testing"
+          continue
+        fi
+      else
+        echo "Using existing SSL certificates for HTTPS testing"
+      fi
+      
+      # Copy test certificates to docker-deployment/certs for deployment
+      echo "Copying test certificates to deployment directory..."
+      mkdir -p "$script_dir/../../docker-deployment/certs"
+      cp "$script_dir/certs/fullchain.pem" "$script_dir/../../docker-deployment/certs/"
+      cp "$script_dir/certs/privkey.pem" "$script_dir/../../docker-deployment/certs/"
+      
       COMPOSE_FILES="-f ../docker-deployment/docker-compose.yml -f ../docker-deployment/docker-compose.override.yml -f ../docker-deployment/docker-compose.https.yml"
       url="https://localhost"
       ;;

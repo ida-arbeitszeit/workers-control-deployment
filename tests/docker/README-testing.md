@@ -1,6 +1,19 @@
 # Testing the Docker Deployment
 
-The deployment includes comprehensive automated testing to validate all deployment scenarios.
+The deploym2. Generate self-signed certificates for HTTPS testing:
+
+```bash
+# Option 1: Use the provided script (recommended)
+./tests/docker/generate-test-certs.sh
+
+# Option 2: Manual generation
+mkdir -p docker-deployment/certs
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 
+  -keyout docker-deployment/certs/privkey.pem 
+  -out docker-deployment/certs/fullchain.pem 
+  -subj "/C=US/ST=Test/L=Test/O=Test/OU=Test/CN=localhost" 
+  -addext "subjectAltName=DNS:localhost"
+```omprehensive automated testing to validate all deployment scenarios.
 
 ## Prerequisites
 
@@ -72,6 +85,29 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
 ```
 
 **Note on Multiarch Builds:** The multiarch build process is designed to be resilient to cross-compilation limitations. On systems without full cross-compilation support, it will automatically fall back to building for the native architecture only, ensuring the build process always succeeds.
+
+### SSL Certificate Generation for HTTPS Testing
+
+The testing suite includes a script to automatically generate self-signed SSL certificates for HTTPS testing:
+
+**`generate-test-certs.sh`** - Generates self-signed SSL certificates
+- Creates `tests/docker/certs/fullchain.pem` (certificate)  
+- Creates `tests/docker/certs/privkey.pem` (private key)
+- Automatically called by test scripts when HTTPS testing is required
+- **For testing purposes only** - do not use in production
+
+The test scripts automatically:
+- Generate certificates in `tests/docker/certs/` if they don't exist
+- Copy certificates to `docker-deployment/certs/` for deployment
+- Clean up copied certificates after testing
+
+To manually generate test certificates:
+```bash
+cd tests/docker
+./generate-test-certs.sh
+```
+
+**⚠️ Security Note**: These are self-signed certificates for testing only. Browsers will show security warnings when accessing HTTPS endpoints with these certificates, but the test scripts use `curl -k` to bypass certificate validation.
 
 ## Running the Tests
 

@@ -216,7 +216,8 @@ The `docker-deployment/run-deployment.sh` script handles individual deployment o
 
 2. **Manual HTTPS (with your own certificates)**
    - This setup serves your application over HTTPS using SSL certificates you provide.
-   - **Prerequisites**: Place your certificate (`fullchain.pem`) and private key (`privkey.pem`) in a `certs/` directory.
+   - **Prerequisites**: Place your certificate (`fullchain.pem`) and private key (`privkey.pem`) in `docker-deployment/certs/` directory.
+   - **For testing**: Generate self-signed certificates with ``./tests/docker/generate-test-certs.sh``
    - Command to start:
      
      .. code-block:: bash
@@ -298,9 +299,21 @@ This mode extends the HTTP setup with SSL certificates you provide:
 - ``docker-compose.https.yml`` - HTTPS configuration
 
 Additional requirements:
-- SSL certificate files in ``certs/`` directory (project root)
+- SSL certificate files in ``docker-deployment/certs/`` directory
 - ``fullchain.pem`` - Certificate chain file
 - ``privkey.pem`` - Private key file
+
+**Certificate Generation for Testing:**
+For testing purposes, you can generate self-signed certificates using the provided helper script:
+
+.. code-block:: bash
+
+   # Generate self-signed certificates for HTTPS testing
+   ./tests/docker/generate-test-certs.sh
+
+This script creates test certificates in ``tests/docker/certs/`` which are automatically copied to ``docker-deployment/certs/`` by the test scripts when needed.
+
+⚠️ **Important**: These self-signed certificates are for testing only and should never be used in production environments.
 
 Services deployed:
 - Same as HTTP mode plus SSL termination

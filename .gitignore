@@ -3,6 +3,7 @@
 
 # Certificates (generated locally for HTTPS testing)
 docker-deployment/certs/
+tests/docker/certs/
 
 # Python cache
 __pycache__/
