@@ -196,14 +196,14 @@ else
 fi
 echo
 
-# Set profiling configuration via environment variables for testing
+# Set profiling configuration via environment variables for testing (recommended approach)
 export PROFILING_ENABLED=true
 export PROFILING_AUTH_ENABLED=true
 export PROFILING_USERNAME="testuser"
 export PROFILING_PASSWORD="testpassword"
 export PROFILING_ENDPOINT="profiling"
 
-echo "-> Set profiling configuration via environment variables"
+echo "-> Set profiling configuration via environment variables (recommended)"
 
 # List of deployment modes to test
 if [[ -n "$DEPLOYMENT_MODES" ]]; then
@@ -652,6 +652,7 @@ run_tests() {
 test_letsencrypt_containers() {
   local compose_files=$1
   local mode=$2
+  local server_name=${3:-"arbeitszeit.local"}  # Default to arbeitszeit.local if not provided
   echo "Testing Let's Encrypt container orchestration..."
   
   # Always resolve compose file paths relative to the script directory
@@ -719,7 +720,7 @@ test_letsencrypt_containers() {
   local max_attempts=10
   local attempt=1
   while [[ $attempt -le $max_attempts ]]; do
-    if curl -fsSL -H "Host: arbeitszeit.local" "http://localhost/" | grep -q "Arbeitszeit" 2>/dev/null; then
+    if curl -fsSL -H "Host: $server_name" "http://localhost/" | grep -q "Arbeitszeit" 2>/dev/null; then
       echo "-> HTTP connectivity: working ✓"
       break
     fi
@@ -1068,6 +1069,10 @@ for mode in "${deployment_modes[@]}"; do
         containers-only)
           echo "Testing CONTAINERS-ONLY mode (orchestration without certificates)..."
           # Test container startup and configuration without actually requesting certificates
+          # Set environment variables for containers-only mode
+          export SERVER_NAME="arbeitszeit.local"
+          export DEFAULT_EMAIL="test@example.com"
+          export LETSENCRYPT_EMAIL="test@example.com"
           url="http://localhost"  # Use HTTP for testing since we won't get certificates
           ;;
         "")
@@ -1122,7 +1127,7 @@ for mode in "${deployment_modes[@]}"; do
   # Run tests based on mode and configuration
   if [[ "$mode" == "letsencrypt" && "$LETSENCRYPT_TEST_MODE" == "containers-only" ]]; then
     # Special test for containers-only mode
-    test_letsencrypt_containers "$COMPOSE_FILES" "$mode"
+    test_letsencrypt_containers "$COMPOSE_FILES" "$mode" "arbeitszeit.local"
   elif [[ "$mode" == "letsencrypt" && "$LETSENCRYPT_TEST_MODE" == "staging" ]]; then
     # For staging mode with real domains, wait for certificate provisioning
     if wait_for_letsencrypt_certificate "$server_name" "$COMPOSE_FILES"; then
@@ -1146,13 +1151,13 @@ for mode in "${deployment_modes[@]}"; do
     echo "Note: Certificate provisioning will not work in mock mode (domain not publicly accessible)"
     
     # First test that containers are working properly
-    test_letsencrypt_containers "$COMPOSE_FILES" "$mode"
+    test_letsencrypt_containers "$COMPOSE_FILES" "$mode" "$server_name"
     
     # Then test HTTP connectivity with the mock domain
     echo "Testing HTTP connectivity with mock domain..."
-    local max_attempts=5
-    local attempt=1
-    local http_success=false
+    max_attempts=5
+    attempt=1
+    http_success=false
     
     while [[ $attempt -le $max_attempts ]]; do
       if curl -fsSL "http://$server_name/" | grep -q "Arbeitszeit" 2>/dev/null; then
@@ -1216,6 +1221,6 @@ fi
 
 # Clean up
 echo "Cleaning up temporary files..."
-# Note: Profiling is now configured via environment variables, no file cleanup needed
+# Note: Profiling is configured via environment variables (recommended approach), no file cleanup needed
 
 echo -e "\n\n✅ All deployment scenarios tested successfully."

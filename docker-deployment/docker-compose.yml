@@ -7,8 +7,22 @@ services:
       MPLCONFIGDIR: /app
       MAIL_CONFIG_PATH: /app/mailconfig.json
       PROFILING_CONFIG_PATH: /app/profiling.json
+      # Profiling configuration via environment variables (recommended)
+      PROFILING_ENABLED: ${PROFILING_ENABLED:-false}
+      PROFILING_AUTH_ENABLED: ${PROFILING_AUTH_ENABLED:-false}
+      PROFILING_USERNAME: ${PROFILING_USERNAME:-}
+      PROFILING_PASSWORD: ${PROFILING_PASSWORD:-}
+      PROFILING_ENDPOINT: ${PROFILING_ENDPOINT:-profiling}
       SERVER_NAME: ${SERVER_NAME:-localhost}
       SERVER_TYPE: ${SERVER_TYPE:-flask}
+      # Mail configuration via environment variables
+      MAIL_SERVER: ${MAIL_SERVER:-}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_DEFAULT_SENDER: ${MAIL_DEFAULT_SENDER:-}
+      MAIL_USE_TLS: ${MAIL_USE_TLS:-true}
+      MAIL_USE_SSL: ${MAIL_USE_SSL:-false}
       # Database connection configuration
       POSTGRES_USER: ${POSTGRES_USER:-arbeitszeitapp}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-examplepassword}
