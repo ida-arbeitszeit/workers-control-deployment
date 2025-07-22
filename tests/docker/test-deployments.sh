@@ -51,6 +51,7 @@ while [[ $# -gt 0 ]]; do
       echo
       echo "Options:"
       echo "  --multiarch         Build multiarch Docker images instead of single-arch"
+      echo "                      Note: May fall back to single-arch on systems without cross-compilation"
       echo "  --modes             Comma-separated list of deployment modes to test"
       echo "                      Available modes: http, https, letsencrypt"
       echo "                      Default: all modes are tested"
@@ -157,6 +158,7 @@ check_requirements() {
     # Check if user wants to build multiarch
     if [[ "$MULTIARCH_BUILD" == "true" ]]; then
       echo "Building multiarch Docker images..."
+      echo "Note: On ARM64 systems, this may fall back to single-arch if cross-compilation is not available."
       if ! (cd "$script_dir/../../docker-deployment" && ./run-deployment.sh build-multiarch); then
         echo "ERROR: multiarch build failed. Please check your Docker and Nix setup."
         return 1

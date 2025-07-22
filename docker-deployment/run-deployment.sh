@@ -20,6 +20,8 @@ usage() {
   echo "  down            Stop and remove the services for the selected mode."
   echo "  build           Build single-arch Docker image and optionally push."
   echo "  build-multiarch Build and optionally push multiarch Docker image."
+  echo "                  Note: Cross-compilation may not be available on all systems."
+  echo "                  Will build for current architecture if cross-compilation fails."
   echo
   echo "IMPORTANT: Building Docker images requires a Linux system."
   echo "If you're on macOS or Windows, use a Linux VM or CI/CD pipeline."
@@ -188,60 +190,176 @@ case "$COMMAND" in
       exit 1
     fi
     
-    # Build for each architecture
-    echo "[INFO] Building x86_64-linux image..."
-    if ! (cd .. && nix --extra-experimental-features nix-command --extra-experimental-features flakes build .#dockerImage --system x86_64-linux); then
-      echo "ERROR: Failed to build x86_64-linux image"
-      exit 1
-    fi
-    mv ../result ../result-x86_64-linux
+    # Detect current architecture
+    local current_arch
+    case "$(uname -m)" in
+      x86_64)
+        current_arch="x86_64-linux"
+        ;;
+      aarch64|arm64)
+        current_arch="aarch64-linux"
+        ;;
+      *)
+        echo "ERROR: Unsupported architecture: $(uname -m)"
+        echo "Supported architectures: x86_64, aarch64"
+        exit 1
+        ;;
+    esac
     
-    echo "[INFO] Building aarch64-linux image..."
-    if ! (cd .. && nix --extra-experimental-features nix-command --extra-experimental-features flakes build .#dockerImage --system aarch64-linux); then
-      echo "ERROR: Failed to build aarch64-linux image"
+    # Define target architectures
+    local target_archs=("x86_64-linux" "aarch64-linux")
+    local built_images=()
+    
+    # Build for each architecture, but handle cross-compilation gracefully
+    for arch in "${target_archs[@]}"; do
+      echo "[INFO] Building $arch image..."
+      
+      if [[ "$arch" == "$current_arch" ]]; then
+        # Native build - should always work
+        echo "[INFO] Native build for $arch..."
+        if ! (cd .. && nix --extra-experimental-features nix-command --extra-experimental-features flakes build .#dockerImage --system "$arch"); then
+          echo "ERROR: Failed to build native $arch image"
+          exit 1
+        fi
+        mv ../result "../result-$arch"
+        built_images+=("$arch")
+      else
+        # Cross-compilation attempt
+        echo "[INFO] Attempting cross-compilation for $arch..."
+        if (cd .. && nix --extra-experimental-features nix-command --extra-experimental-features flakes build .#dockerImage --system "$arch" 2>/dev/null); then
+          echo "[INFO] Cross-compilation successful for $arch"
+          mv ../result "../result-$arch"
+          built_images+=("$arch")
+        else
+          echo "[WARN] Cross-compilation failed for $arch, skipping..."
+          echo "[WARN] This is normal on systems without cross-compilation support."
+          echo "[WARN] Continuing with available architectures..."
+        fi
+      fi
+    done
+    
+    # Check if we have at least one built image
+    if [[ ${#built_images[@]} -eq 0 ]]; then
+      echo "ERROR: No images were built successfully"
       exit 1
     fi
-    mv ../result ../result-aarch64-linux
+    
+    echo "[INFO] Successfully built images for: ${built_images[*]}"
     
     # Load images into Docker
     echo "[INFO] Loading Docker images..."
-    docker load < ../result-x86_64-linux
-    docker load < ../result-aarch64-linux
+    for arch in "${built_images[@]}"; do
+      docker load < "../result-$arch"
+      
+      # Tag with architecture-specific tags
+      case "$arch" in
+        x86_64-linux)
+          docker tag arbeitszeitapp:latest arbeitszeitapp:latest-amd64
+          ;;
+        aarch64-linux)
+          docker tag arbeitszeitapp:latest arbeitszeitapp:latest-arm64
+          ;;
+      esac
+    done
     
-    # Tag images with architecture-specific tags
-    docker tag arbeitszeitapp:latest arbeitszeitapp:latest-amd64
-    docker tag arbeitszeitapp:latest arbeitszeitapp:latest-arm64
+    # Create multiarch manifest if we have multiple architectures
+    if [[ ${#built_images[@]} -gt 1 ]]; then
+      echo "[INFO] Creating multiarch manifest..."
+      local manifest_images=()
+      for arch in "${built_images[@]}"; do
+        case "$arch" in
+          x86_64-linux)
+            manifest_images+=("arbeitszeitapp:latest-amd64")
+            ;;
+          aarch64-linux)
+            manifest_images+=("arbeitszeitapp:latest-arm64")
+            ;;
+        esac
+      done
+      
+      docker manifest create arbeitszeitapp:latest "${manifest_images[@]}"
+      
+      for arch in "${built_images[@]}"; do
+        case "$arch" in
+          x86_64-linux)
+            docker manifest annotate arbeitszeitapp:latest arbeitszeitapp:latest-amd64 --arch amd64
+            ;;
+          aarch64-linux)
+            docker manifest annotate arbeitszeitapp:latest arbeitszeitapp:latest-arm64 --arch arm64
+            ;;
+        esac
+      done
+    else
+      echo "[INFO] Single architecture build - no manifest needed"
+      # Just tag the single image as latest
+      docker tag arbeitszeitapp:latest arbeitszeitapp:latest
+    fi
     
-    # Create multiarch manifest
-    echo "[INFO] Creating multiarch manifest..."
-    docker manifest create arbeitszeitapp:latest \
-      arbeitszeitapp:latest-amd64 \
-      arbeitszeitapp:latest-arm64
-    
-    docker manifest annotate arbeitszeitapp:latest arbeitszeitapp:latest-amd64 --arch amd64
-    docker manifest annotate arbeitszeitapp:latest arbeitszeitapp:latest-arm64 --arch arm64
-    
-    # Clean up architecture-specific tags and build results
-    rm -f ../result-x86_64-linux ../result-aarch64-linux
-    docker rmi arbeitszeitapp:latest-amd64 arbeitszeitapp:latest-arm64 2>/dev/null || true
+    # Clean up build results and architecture-specific tags
+    for arch in "${built_images[@]}"; do
+      rm -f "../result-$arch"
+      case "$arch" in
+        x86_64-linux)
+          docker rmi arbeitszeitapp:latest-amd64 2>/dev/null || true
+          ;;
+        aarch64-linux)
+          docker rmi arbeitszeitapp:latest-arm64 2>/dev/null || true
+          ;;
+      esac
+    done
     
     if [ -n "$REGISTRY" ]; then
       echo "[INFO] Pushing to registry: $REGISTRY"
       
       # Tag for registry
       docker tag arbeitszeitapp:latest "$REGISTRY"
-      docker manifest create "$REGISTRY" \
-        arbeitszeitapp:latest-amd64 \
-        arbeitszeitapp:latest-arm64
       
-      docker manifest annotate "$REGISTRY" arbeitszeitapp:latest-amd64 --arch amd64
-      docker manifest annotate "$REGISTRY" arbeitszeitapp:latest-arm64 --arch arm64
-      
-      # Push manifest
-      docker manifest push "$REGISTRY"
-      echo "[INFO] Successfully pushed multiarch image to $REGISTRY"
+      if [[ ${#built_images[@]} -gt 1 ]]; then
+        # Push multiarch manifest
+        local registry_manifest_images=()
+        for arch in "${built_images[@]}"; do
+          case "$arch" in
+            x86_64-linux)
+              docker tag arbeitszeitapp:latest-amd64 "$REGISTRY-amd64"
+              docker push "$REGISTRY-amd64"
+              registry_manifest_images+=("$REGISTRY-amd64")
+              ;;
+            aarch64-linux)
+              docker tag arbeitszeitapp:latest-arm64 "$REGISTRY-arm64"
+              docker push "$REGISTRY-arm64"
+              registry_manifest_images+=("$REGISTRY-arm64")
+              ;;
+          esac
+        done
+        
+        docker manifest create "$REGISTRY" "${registry_manifest_images[@]}"
+        
+        for arch in "${built_images[@]}"; do
+          case "$arch" in
+            x86_64-linux)
+              docker manifest annotate "$REGISTRY" "$REGISTRY-amd64" --arch amd64
+              ;;
+            aarch64-linux)
+              docker manifest annotate "$REGISTRY" "$REGISTRY-arm64" --arch arm64
+              ;;
+          esac
+        done
+        
+        docker manifest push "$REGISTRY"
+        echo "[INFO] Successfully pushed multiarch image to $REGISTRY"
+      else
+        # Push single architecture
+        docker push "$REGISTRY"
+        echo "[INFO] Successfully pushed single-arch image to $REGISTRY"
+      fi
     else
-      echo "[INFO] Multiarch manifest created locally as arbeitszeitapp:latest"
+      if [[ ${#built_images[@]} -gt 1 ]]; then
+        echo "[INFO] Multiarch manifest created locally as arbeitszeitapp:latest"
+        echo "[INFO] Built for architectures: ${built_images[*]}"
+      else
+        echo "[INFO] Single-arch image created locally as arbeitszeitapp:latest"
+        echo "[INFO] Built for architecture: ${built_images[*]}"
+      fi
       echo "[INFO] To push to a registry, run:"
       echo "  $0 build-multiarch registry/image:tag"
     fi

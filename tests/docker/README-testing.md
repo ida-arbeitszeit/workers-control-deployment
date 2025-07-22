@@ -63,13 +63,15 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
 # For single-arch build (matches current Linux system architecture)
 ./docker-deployment/run-deployment.sh build
 
-# For multiarch build
+# For multiarch build (attempts both x86_64 and ARM64, falls back to native architecture if cross-compilation unavailable)
 ./docker-deployment/run-deployment.sh build-multiarch
 
 # For specific architecture
 ./docker-deployment/run-deployment.sh build x86_64-linux
 ./docker-deployment/run-deployment.sh build aarch64-linux
 ```
+
+**Note on Multiarch Builds:** The multiarch build process is designed to be resilient to cross-compilation limitations. On systems without full cross-compilation support, it will automatically fall back to building for the native architecture only, ensuring the build process always succeeds.
 
 ## Running the Tests
 
@@ -100,7 +102,7 @@ chmod +x tests/docker/test-deployments.sh
 
 ### Test Script Options
 
-* `--multiarch` - Build multiarch Docker images instead of single-arch
+* `--multiarch` - Build multiarch Docker images instead of single-arch (falls back to native architecture if cross-compilation unavailable)
 * `--modes MODE1,MODE2` - Test specific deployment modes (http, https, letsencrypt)
 * `--letsencrypt-test MODE` - Configure Let's Encrypt testing approach:
   
@@ -129,7 +131,8 @@ The test script will automatically:
 * Check for all required tools and configuration
 * Build the Docker image if not already present
 * Use single-arch build by default for faster testing
-* Support multiarch builds for both supported Linux architectures (x86_64 and aarch64)
+* Support multiarch builds with graceful fallback to native architecture on systems without cross-compilation support
+* Support both supported Linux architectures (x86_64 and aarch64)
 * Clean up resources after testing is complete
 
 ### Failure Diagnostics

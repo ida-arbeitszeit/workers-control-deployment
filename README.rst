@@ -200,6 +200,7 @@ The `docker-deployment/run-deployment.sh` script handles individual deployment o
    ./run-deployment.sh build x86_64-linux      # Build for x86_64
    ./run-deployment.sh build aarch64-linux     # Build for ARM64
    ./run-deployment.sh build-multiarch         # Build multiarch (both x86_64 and ARM64)
+                                                # Note: Falls back to current architecture if cross-compilation unavailable
    
    # Build and push to registry
    ./run-deployment.sh build x86_64-linux docker.io/myuser/app:v1.0
@@ -528,7 +529,7 @@ The profiling system is configured via environment variables and generates confi
    ./run-deployment.sh build x86_64-linux
    ./run-deployment.sh build aarch64-linux
    
-   # Multiarch build (builds both architectures)
+   # Multiarch build (attempts both architectures, falls back to current if cross-compilation unavailable)
    ./run-deployment.sh build-multiarch
    
    # Push to registry
@@ -580,12 +581,21 @@ If you want to build just the arbeitszeitapp Docker image without PostgreSQL, ng
 
 .. code-block:: bash
 
-   # Build multiarch image (both AMD64 and ARM64)
+   # Build multiarch image (attempts both AMD64 and ARM64)
    cd docker-deployment
    ./run-deployment.sh build-multiarch
 
    # Build multiarch and push to registry
    ./run-deployment.sh build-multiarch docker.io/username/arbeitszeitapp:v1.0
+
+**Note on Cross-Compilation:**
+
+The multiarch build attempts to create images for both x86_64 and ARM64 architectures. However, cross-compilation may not be available on all systems:
+
+- **On x86_64 systems**: May successfully build both architectures or fall back to x86_64 only
+- **On ARM64 systems**: May successfully build both architectures or fall back to ARM64 only  
+- **Fallback behavior**: If cross-compilation fails, the build continues with the native architecture
+- **No failure**: The build process is designed to succeed even with limited cross-compilation support
 
 **What You Get:**
 
@@ -850,6 +860,7 @@ If you're developing on macOS or Windows, you'll need to use a Linux environment
 - **"ERROR: Docker image building is only supported on Linux"**: Use a Linux VM or CI/CD for building
 - **Docker permission errors**: Add your user to the docker group
 - **Nix not found**: Install Nix package manager on your Linux system
+- **Cross-compilation warnings**: Normal on systems without cross-compilation support; build will continue with native architecture
 
 **Production Deployment Checklist**
 
