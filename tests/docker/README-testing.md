@@ -319,10 +319,10 @@ The enhanced testing covers these scenarios:
 
 | Scenario | Profiling | Email | Description |
 |----------|-----------|-------|-------------|
-| `profiling_enabled_email_configured` | ✅ Enabled | ✅ Configured | Full feature set |
-| `profiling_disabled_email_configured` | ❌ Disabled | ✅ Configured | Email only |
-| `profiling_enabled_email_unconfigured` | ✅ Enabled | ❌ Unconfigured | Profiling only |
-| `profiling_disabled_email_unconfigured` | ❌ Disabled | ❌ Unconfigured | Minimal config |
+| `profiling_enabled` | ✅ Enabled | ✅ Configured | Full feature set with profiling |
+| `profiling_disabled` | ❌ Disabled | ✅ Configured | Standard configuration |
+
+**Note**: Email configuration is always present in tests because it's **required** for core application functionality (user registration, password resets, notifications).
 
 ## Test Coverage
 
@@ -354,7 +354,8 @@ The configuration tests integrate seamlessly with the existing test framework:
 ### Development Workflow
 ```bash
 # Quick configuration validation during development
-./configuration-tests.sh --scenario profiling_enabled_email_configured
+# Run specific scenario test
+./configuration-tests.sh --scenario profiling_enabled
 
 # Full regression testing including configuration scenarios
 ./test-deployments.sh --modes http --config-tests
@@ -383,6 +384,6 @@ The configuration tests integrate seamlessly with the existing test framework:
 The configuration testing uses environment variables to simulate different configuration states:
 
 - **Profiling**: `PROFILING_ENABLED`, `PROFILING_AUTH_ENABLED`, `PROFILING_USERNAME`, `PROFILING_PASSWORD`, `PROFILING_ENDPOINT`
-- **Email**: `MAIL_SERVER`, `MAIL_PORT`, `DEFAULT_EMAIL`
+- **Email**: Always configured with `MAIL_SERVER`, `MAIL_PORT`, `DEFAULT_EMAIL` (required for core functionality)
 
 Each scenario deploys a fresh instance with the appropriate environment configuration, runs validation tests, and cleans up before proceeding to the next scenario.

@@ -10,10 +10,8 @@
 #   --mode      Deployment mode to test (http, https) - default: http
 #   --scenario  Specific scenario to test, or 'all' for all scenarios
 #               Available scenarios:
-#               - profiling_enabled_email_configured
-#               - profiling_disabled_email_configured
-#               - profiling_enabled_email_unconfigured
-#               - profiling_disabled_email_unconfigured
+#               - profiling_enabled
+#               - profiling_disabled
 #   --help      Show help message
 #
 set -euo pipefail
@@ -41,17 +39,15 @@ while [[ $# -gt 0 ]]; do
       echo "  --mode      Deployment mode to test (http, https) - default: http"
       echo "  --scenario  Specific scenario to test, or 'all' for all scenarios"
       echo "              Available scenarios:"
-      echo "              - profiling_enabled_email_configured"
-      echo "              - profiling_disabled_email_configured"
-      echo "              - profiling_enabled_email_unconfigured"
-      echo "              - profiling_disabled_email_unconfigured"
+      echo "              - profiling_enabled"
+      echo "              - profiling_disabled"
       echo "  --help      Show this help message"
       echo
       echo "Examples:"
       echo "  $0                                                    # Test all scenarios in HTTP mode"
       echo "  $0 --mode https                                      # Test all scenarios in HTTPS mode"
-      echo "  $0 --scenario profiling_enabled_email_configured     # Test specific scenario"
-      echo "  $0 --mode https --scenario profiling_disabled_email_unconfigured"
+      echo "  $0 --scenario profiling_enabled                     # Test specific scenario"
+      echo "  $0 --mode https --scenario profiling_disabled"
       exit 0
       ;;
     *)
@@ -69,7 +65,7 @@ if [[ "$MODE" != "http" && "$MODE" != "https" ]]; then
 fi
 
 # Validate scenario
-valid_scenarios=("all" "profiling_enabled_email_configured" "profiling_disabled_email_configured" "profiling_enabled_email_unconfigured" "profiling_disabled_email_unconfigured")
+valid_scenarios=("all" "profiling_enabled" "profiling_disabled")
 if [[ ! " ${valid_scenarios[*]} " =~ " ${SCENARIO} " ]]; then
   echo "ERROR: Invalid scenario '$SCENARIO'. Valid scenarios: ${valid_scenarios[*]}"
   exit 1
@@ -134,20 +130,20 @@ else
   
   # Parse scenario parameters
   profiling_enabled="false"
-  email_configured="false"
   
   case "$SCENARIO" in
     *profiling_enabled*) profiling_enabled="true" ;;
     *profiling_disabled*) profiling_enabled="false" ;;
   esac
   
-  case "$SCENARIO" in
-    *email_configured*) email_configured="true" ;;
-    *email_unconfigured*) email_configured="false" ;;
-  esac
-  
   # Set environment variables for this scenario
   echo "Configuring environment for scenario..."
+  
+  # Email is always configured since it's required for core functionality
+  export MAIL_SERVER="localhost"
+  export MAIL_PORT="587"
+  export DEFAULT_EMAIL="test@example.com"
+  echo "-> Email: CONFIGURED (required for core functionality)"
   
   if [[ "$profiling_enabled" == "true" ]]; then
     export PROFILING_ENABLED=true
@@ -160,16 +156,6 @@ else
     export PROFILING_ENABLED=false
     unset PROFILING_AUTH_ENABLED PROFILING_USERNAME PROFILING_PASSWORD PROFILING_ENDPOINT
     echo "-> Profiling: DISABLED"
-  fi
-  
-  if [[ "$email_configured" == "true" ]]; then
-    export MAIL_SERVER="localhost"
-    export MAIL_PORT="587"
-    export DEFAULT_EMAIL="test@example.com"
-    echo "-> Email: CONFIGURED"
-  else
-    unset MAIL_SERVER MAIL_PORT DEFAULT_EMAIL
-    echo "-> Email: UNCONFIGURED"
   fi
   
   # Set up cleanup trap
@@ -204,9 +190,9 @@ else
     exit 1
   fi
   
-  # Test email configuration
-  email_description="${email_configured} (${SCENARIO})"
-  if ! test_email_configuration "$base_compose_files" "$email_configured" "$email_description"; then
+  # Test email configuration (always configured)
+  echo "Testing email configuration: configured (required)"
+  if ! test_email_configuration "$base_compose_files" "true" "configured (required)"; then
     echo "ERROR: Email configuration test failed for scenario $SCENARIO"
     collect_failure_logs "$base_compose_files" "${MODE}-config-${SCENARIO}" "arbeitszeitapp" "email-config-test"
     exit 1

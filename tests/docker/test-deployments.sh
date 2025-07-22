@@ -853,11 +853,10 @@ run_configuration_tests() {
   echo -e "\n--- Configuration Testing for $mode mode ---"
   
   # Define test scenarios
+  # Email configuration is always required for core application functionality
   local scenarios=(
-    "profiling_enabled_email_configured"
-    "profiling_disabled_email_configured" 
-    "profiling_enabled_email_unconfigured"
-    "profiling_disabled_email_unconfigured"
+    "profiling_enabled"
+    "profiling_disabled"
   )
   
   # Define compose files for the mode
@@ -900,20 +899,20 @@ run_configuration_tests() {
     
     # Parse scenario parameters
     local profiling_enabled="false"
-    local email_configured="false"
     
     case "$scenario" in
       *profiling_enabled*) profiling_enabled="true" ;;
       *profiling_disabled*) profiling_enabled="false" ;;
     esac
     
-    case "$scenario" in
-      *email_configured*) email_configured="true" ;;
-      *email_unconfigured*) email_configured="false" ;;
-    esac
-    
     # Set environment variables for this scenario
     echo "Configuring environment for scenario..."
+    
+    # Email is always configured since it's required for core functionality
+    export MAIL_SERVER="localhost"
+    export MAIL_PORT="587"
+    export DEFAULT_EMAIL="test@example.com"
+    echo "-> Email: CONFIGURED (required for core functionality)"
     
     if [[ "$profiling_enabled" == "true" ]]; then
       export PROFILING_ENABLED=true
@@ -926,16 +925,6 @@ run_configuration_tests() {
       export PROFILING_ENABLED=false
       unset PROFILING_AUTH_ENABLED PROFILING_USERNAME PROFILING_PASSWORD PROFILING_ENDPOINT
       echo "-> Profiling: DISABLED"
-    fi
-    
-    if [[ "$email_configured" == "true" ]]; then
-      export MAIL_SERVER="localhost"
-      export MAIL_PORT="587"
-      export DEFAULT_EMAIL="test@example.com"
-      echo "-> Email: CONFIGURED"
-    else
-      unset MAIL_SERVER MAIL_PORT DEFAULT_EMAIL
-      echo "-> Email: UNCONFIGURED"
     fi
     
     # Start deployment for this scenario
@@ -959,9 +948,9 @@ run_configuration_tests() {
       continue
     fi
     
-    # Test email configuration
-    local email_description="${email_configured} (${scenario})"
-    if ! test_email_configuration "$base_compose_files" "$email_configured" "$email_description"; then
+    # Test email configuration (always configured)
+    echo "Testing email configuration: configured (required)"
+    if ! test_email_configuration "$base_compose_files" "true" "configured (required)"; then
       echo "ERROR: Email configuration test failed for scenario $scenario"
       collect_failure_logs "$base_compose_files" "${mode}-config-${scenario}" "arbeitszeitapp" "email-config-test"
       
