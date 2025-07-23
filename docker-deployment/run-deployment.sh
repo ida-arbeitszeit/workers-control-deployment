@@ -88,6 +88,52 @@ case "$COMMAND" in
     
     case "$COMMAND" in
       up)
+        # Check if arbeitszeitapp image exists before starting
+        IMAGE_NAME="${ARBEITSZEITAPP_IMAGE:-arbeitszeitapp:latest}"
+        if ! docker image inspect "$IMAGE_NAME" >/dev/null 2>&1; then
+          echo "[ERROR] Docker image '$IMAGE_NAME' not found locally."
+          echo ""
+          echo "This deployment requires the arbeitszeitapp Docker image to be available."
+          echo "You have several options to resolve this:"
+          echo ""
+          echo "1. BUILD locally (recommended for development):"
+          echo "   ./run-deployment.sh build"
+          echo ""
+          echo "2. BUILD for specific architecture:"
+          echo "   ./run-deployment.sh build x86_64-linux    # For Intel/AMD"
+          echo "   ./run-deployment.sh build aarch64-linux   # For ARM64"
+          echo ""
+          echo "3. USE a pre-built image from a registry:"
+          echo "   export ARBEITSZEITAPP_IMAGE=registry.example.com/arbeitszeitapp:latest"
+          echo "   ./run-deployment.sh up $MODE"
+          echo ""
+          echo "4. BUILD multiarch image (for production):"
+          echo "   ./run-deployment.sh build-multiarch"
+          echo ""
+          
+          # Interactive prompt if terminal is available
+          if [[ -t 0 ]]; then
+            echo "Would you like to build the image now? [y/N]: "
+            read -r response
+            if [[ "$response" =~ ^[Yy]$ ]]; then
+              echo "[INFO] Building Docker image for current architecture..."
+              if "$0" build; then
+                echo "[INFO] Build successful! Starting deployment..."
+                echo ""
+              else
+                echo "[ERROR] Build failed. Please check the error messages above."
+                exit 1
+              fi
+            else
+              echo "[INFO] Deployment cancelled. Please build or specify an image first."
+              exit 1
+            fi
+          else
+            echo "Note: Running in non-interactive mode. Please choose one of the options above."
+            exit 1
+          fi
+        fi
+        
         echo "[INFO] Starting arbeitszeitapp in '$MODE' mode..."
         exec docker compose $COMPOSE_FILES up -d
         ;;
@@ -191,7 +237,7 @@ case "$COMMAND" in
     fi
     
     # Detect current architecture
-    local current_arch
+    current_arch=""
     case "$(uname -m)" in
       x86_64)
         current_arch="x86_64-linux"
@@ -207,8 +253,8 @@ case "$COMMAND" in
     esac
     
     # Define target architectures
-    local target_archs=("x86_64-linux" "aarch64-linux")
-    local built_images=()
+    target_archs=("x86_64-linux" "aarch64-linux")
+    built_images=()
     
     # Build for each architecture, but handle cross-compilation gracefully
     for arch in "${target_archs[@]}"; do
@@ -265,7 +311,7 @@ case "$COMMAND" in
     # Create multiarch manifest if we have multiple architectures
     if [[ ${#built_images[@]} -gt 1 ]]; then
       echo "[INFO] Creating multiarch manifest..."
-      local manifest_images=()
+      manifest_images=()
       for arch in "${built_images[@]}"; do
         case "$arch" in
           x86_64-linux)
@@ -316,7 +362,7 @@ case "$COMMAND" in
       
       if [[ ${#built_images[@]} -gt 1 ]]; then
         # Push multiarch manifest
-        local registry_manifest_images=()
+        registry_manifest_images=()
         for arch in "${built_images[@]}"; do
           case "$arch" in
             x86_64-linux)
