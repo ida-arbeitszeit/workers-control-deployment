@@ -51,8 +51,9 @@ The Docker deployment system includes comprehensive features for reliable deploy
 **✅ Multi-Architecture Support**
   - Native builds for x86_64-linux and aarch64-linux
   - Cross-compilation with automatic fallback
-  - Multiarch Docker manifests for registry pushes
-  - Architecture detection and validation
+  - Flexible architecture tagging for deployment
+  - Separate multiarch manifest creation and registry pushing
+  - Architecture-specific image preservation for later use
 
 **✅ Comprehensive Error Handling**
   - Dependency validation (Nix, Docker availability)
@@ -85,6 +86,42 @@ The deployment includes two main scripts for different purposes:
 
 1. **`docker-deployment/run-deployment.sh`** - Day-to-day deployment operations
 2. **`docker-deployment/maintenance/update-deployment.sh`** - Comprehensive deployment updates
+
+**Available Commands (run-deployment.sh):**
+
+.. list-table:: Command Reference
+   :widths: 25 75
+   :header-rows: 1
+
+   * - Command
+     - Description
+   * - **up {mode}**
+     - Start services (http, https, letsencrypt)
+   * - **down {mode}**
+     - Stop services for specified mode
+   * - **build [arch] [registry]**
+     - Build single-architecture image
+   * - **build-multiarch**
+     - Build images for multiple architectures
+   * - **tag-latest {arch}**
+     - Tag specific architecture as 'latest' for deployment
+   * - **push-multiarch {registry}**
+     - Create multiarch manifest and push to registry
+
+**Available Flags:**
+
+.. list-table:: Flag Reference
+   :widths: 25 75
+   :header-rows: 1
+
+   * - Flag
+     - Description
+   * - **--force**
+     - Force rebuild by removing existing images and clearing caches
+   * - **--rebuild**
+     - Alias for --force (up command only)
+   * - **--tag-latest**
+     - Auto-tag built images for deployment (build-multiarch only)
 
 **run-deployment.sh vs update-deployment.sh**
 
@@ -249,15 +286,28 @@ The `docker-deployment/run-deployment.sh` script handles individual deployment o
    ./run-deployment.sh build x86_64-linux      # Build for x86_64
    ./run-deployment.sh build --force x86_64-linux    # Force rebuild for x86_64
    ./run-deployment.sh build aarch64-linux     # Build for ARM64
-   ./run-deployment.sh build-multiarch         # Build multiarch (both x86_64 and ARM64)
-                                                # Note: Falls back to current architecture if cross-compilation unavailable
-   ./run-deployment.sh build-multiarch --force # Force multiarch rebuild
    
-   # Build and push to registry
-   ./run-deployment.sh build x86_64-linux docker.io/myuser/app:v1.0
-   ./run-deployment.sh build --force aarch64-linux docker.io/myuser/app:v1.0
-   ./run-deployment.sh build-multiarch docker.io/myuser/app:v1.0
-   ./run-deployment.sh build-multiarch --force docker.io/myuser/app:v1.0
+   # Build multiarch images (NEW WORKFLOW)
+   ./run-deployment.sh build-multiarch         # Build both architectures (no latest tag)
+   ./run-deployment.sh build-multiarch --tag-latest    # Build both, tag native arch as latest
+   ./run-deployment.sh build-multiarch --force # Force multiarch rebuild
+                                                # Note: Falls back to current architecture if cross-compilation unavailable
+   
+   # Tag specific architecture for deployment (NEW)
+   ./run-deployment.sh tag-latest aarch64      # Tag ARM64 version as latest for deployment
+   ./run-deployment.sh tag-latest x86_64       # Tag x86_64 version as latest for deployment
+   
+   # Push multiarch images to registry (NEW)
+   ./run-deployment.sh push-multiarch docker.io/myuser/app:v1.0  # Create manifest and push
+   
+   # Build and push to registry (UPDATED WORKFLOW)
+   ./run-deployment.sh build x86_64-linux docker.io/myuser/app:v1.0-amd64   # Single arch
+   ./run-deployment.sh build --force aarch64-linux docker.io/myuser/app:v1.0-arm64
+   
+   # Multiarch workflow (SEPARATED BUILD AND PUSH)
+   ./run-deployment.sh build-multiarch         # Build both architectures locally
+   ./run-deployment.sh push-multiarch docker.io/myuser/app:v1.0  # Create manifest and push
+   ./run-deployment.sh build-multiarch --force # Force rebuild both architectures
 
 **Force Rebuild Options:**
 
@@ -274,6 +324,12 @@ The deployment script provides force rebuild functionality to ensure you always 
   - Alias for --force when used with the up command
   - Automatically rebuilds the image before starting services
   - Ensures deployment uses the absolute latest code changes
+
+**--tag-latest flag (for build-multiarch command):**
+  - Automatically tags a specific architecture as ``arbeitszeitapp:latest``
+  - Takes an architecture parameter (``x86_64-linux`` or ``aarch64-linux``)
+  - Enables immediate deployment after multiarch build
+  - Example: ``./run-deployment.sh build-multiarch --tag-latest x86_64-linux``
 
 **When to Use Force Rebuild:**
 
@@ -729,6 +785,101 @@ If you want to build just the arbeitszeitapp Docker image without PostgreSQL, ng
 
    # Build multiarch and push to registry
    ./run-deployment.sh build-multiarch docker.io/username/arbeitszeitapp:v1.0
+
+**Comprehensive Multi-Architecture Workflow**
+---------------------------------------------
+
+The deployment script provides a flexible multiarch build system with separated build, tagging, and registry operations for professional deployment workflows.
+
+**New Recommended Workflow:**
+
+.. code-block:: bash
+
+   # 1. Build both architectures locally (no registry interaction)
+   ./run-deployment.sh build-multiarch
+   
+   # This creates:
+   # - arbeitszeitapp:x86_64-linux (native or cross-compiled)
+   # - arbeitszeitapp:aarch64-linux (native or cross-compiled)
+   
+   # 2. Tag one architecture as latest for local deployment
+   ./run-deployment.sh tag-latest x86_64-linux    # Tag x86_64 as latest
+   ./run-deployment.sh tag-latest aarch64-linux   # Or tag aarch64 as latest
+   
+   # 3. Push to registry with manifest (when ready)
+   ./run-deployment.sh push-multiarch docker.io/myuser/app:v1.0
+
+**Build with Auto-Tagging:**
+
+.. code-block:: bash
+
+   # Build both architectures and automatically tag latest
+   ./run-deployment.sh build-multiarch --tag-latest x86_64-linux
+   # Creates both arch images + tags x86_64 as arbeitszeitapp:latest
+
+**Architecture Verification:**
+
+After building, verify both images exist:
+
+.. code-block:: bash
+
+   docker images arbeitszeitapp
+   # Should show:
+   # arbeitszeitapp:x86_64-linux
+   # arbeitszeitapp:aarch64-linux
+   # arbeitszeitapp:latest (points to selected architecture)
+
+**Development Workflow Example:**
+
+.. code-block:: bash
+
+   # Development cycle with force rebuild
+   ./run-deployment.sh build-multiarch --force --tag-latest x86_64-linux
+   ./run-deployment.sh up letsencrypt     # Uses arbeitszeitapp:latest
+   
+   # When ready to publish both architectures
+   ./run-deployment.sh push-multiarch docker.io/myuser/app:v1.0
+
+**Production Workflow Example:**
+
+.. code-block:: bash
+
+   # Production build and deployment
+   ./run-deployment.sh build-multiarch --force     # Clean build both architectures
+   ./run-deployment.sh tag-latest x86_64-linux     # Select production architecture
+   ./run-deployment.sh push-multiarch docker.io/myuser/app:v$(date +%Y%m%d)
+   
+   # Test deployment with selected architecture
+   ./run-deployment.sh up letsencrypt
+
+**Available Multiarch Commands:**
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - **Command**
+     - **Description**
+   * - ``build-multiarch``
+     - Build both x86_64 and aarch64 images locally
+   * - ``build-multiarch --force``
+     - Force clean rebuild of both architectures
+   * - ``build-multiarch --tag-latest {arch}``
+     - Build both + tag specified arch as latest
+   * - ``tag-latest {arch}``
+     - Tag existing architecture-specific image as latest
+   * - ``push-multiarch {registry}``
+     - Create multiarch manifest and push to registry
+
+**Cross-Compilation Support:**
+
+The multiarch build system uses Nix cross-compilation with the following capabilities:
+
+- **Native builds**: Fast builds on matching architecture
+- **Cross-compilation**: Builds for other architectures using QEMU emulation
+- **Fallback behavior**: If cross-compilation fails, continues with native architecture only
+- **Architecture preservation**: All built images are preserved with architecture tags
+- **Verification output**: Shows image IDs, sizes, and architectures after building
 
 **Note on Cross-Compilation:**
 
