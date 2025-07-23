@@ -289,6 +289,51 @@ case "$COMMAND" in
         ;;
     esac
     
+    # Check for cross-compilation restrictions
+    current_system_arch=""
+    case "$(uname -m)" in
+      x86_64)
+        current_system_arch="x86_64-linux"
+        ;;
+      aarch64|arm64)
+        current_system_arch="aarch64-linux"
+        ;;
+    esac
+    
+    if [[ "$ARCH" != "$current_system_arch" ]]; then
+      echo "[WARN] Cross-compilation attempt detected:"
+      echo "  Current system: $current_system_arch"
+      echo "  Target architecture: $ARCH"
+      echo ""
+      
+      # Check if user is trusted for cross-compilation
+      if nix show-config 2>/dev/null | grep -q "trusted-users.*$(whoami)" || [[ "$(whoami)" == "root" ]]; then
+        echo "[INFO] User is trusted for cross-compilation, attempting build..."
+      else
+        echo "[ERROR] Cross-compilation failed: Nix user '$(whoami)' is not trusted"
+        echo ""
+        echo "This happens when Nix is configured with restricted users for security."
+        echo "Cross-compilation requires either:"
+        echo ""
+        echo "1. TRUSTED USER: Add your user to nix.settings.trusted-users"
+        echo "   - Edit /etc/nix/nix.conf and add: trusted-users = root $(whoami)"
+        echo "   - Restart the nix-daemon: sudo systemctl restart nix-daemon"
+        echo ""
+        echo "2. NATIVE BUILD: Build on the target architecture"
+        echo "   - For x86_64: Use an Intel/AMD Linux system"
+        echo "   - For aarch64: Use an ARM64 Linux system"
+        echo ""
+        echo "3. CI/CD PIPELINE: Use GitHub Actions or similar service"
+        echo "   - Multi-arch builds work well in containerized CI environments"
+        echo ""
+        echo "4. BUILD FOR CURRENT ARCH: Build for your current system instead"
+        echo "   ./run-deployment.sh build $current_system_arch"
+        echo ""
+        echo "For local development, building for your current architecture is usually sufficient."
+        exit 1
+      fi
+    fi
+    
     echo "[INFO] Building Docker image for $ARCH..."
     
     # Build the image (go to parent directory for flake.nix)
