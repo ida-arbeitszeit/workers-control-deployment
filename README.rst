@@ -31,6 +31,41 @@ This repository provides two deployment options:
 1. **NixOS Module** - For deploying on NixOS systems using the Nix package manager
 2. **Docker Deployment** - For deploying on any system that supports Docker
 
+Key Features
+============
+
+The Docker deployment system includes comprehensive features for reliable deployments:
+
+**✅ Force Rebuild Support**
+  - ``--force`` flag for guaranteed fresh builds
+  - ``--rebuild`` flag for up command to rebuild before starting
+  - Automatic cache clearing and image cleanup
+  - Eliminates stale build issues during development
+
+**✅ Automatic Dependency Management**
+  - Automatic Nix flake updates before builds
+  - Prevents narHash mismatch errors
+  - Keeps dependencies current without manual intervention
+  - Graceful fallback if updates fail
+
+**✅ Multi-Architecture Support**
+  - Native builds for x86_64-linux and aarch64-linux
+  - Cross-compilation with automatic fallback
+  - Multiarch Docker manifests for registry pushes
+  - Architecture detection and validation
+
+**✅ Comprehensive Error Handling**
+  - Dependency validation (Nix, Docker availability)
+  - Operating system compatibility checks
+  - User permission validation for cross-compilation
+  - Interactive prompts for missing images
+
+**✅ Flexible Deployment Modes**
+  - HTTP mode for development
+  - HTTPS mode with custom certificates
+  - Let's Encrypt mode for automatic SSL
+  - Environment-based configuration management
+
 Docker Deployment
 ----------------
 
@@ -135,10 +170,18 @@ The deployment includes two main scripts for different purposes:
    cd docker-deployment
    ./run-deployment.sh up http
    
-   # Make code changes, then rebuild and restart
+   # Make code changes, then rebuild and restart (traditional approach)
    ./run-deployment.sh build
    ./run-deployment.sh down http
    ./run-deployment.sh up http
+   
+   # Make code changes, then force rebuild and restart (recommended for development)
+   ./run-deployment.sh build --force        # Force clean rebuild
+   ./run-deployment.sh down http
+   ./run-deployment.sh up http
+   
+   # Or combine into one command (ensures latest changes)
+   ./run-deployment.sh up http --rebuild     # Force rebuild then start
    
    # Or use update script for comprehensive rebuild
    cd ..
@@ -190,6 +233,11 @@ The `docker-deployment/run-deployment.sh` script handles individual deployment o
    ./run-deployment.sh up https         # HTTPS mode
    ./run-deployment.sh up letsencrypt   # Let's Encrypt mode
    
+   # Force rebuild and start (ensures latest changes)
+   ./run-deployment.sh up http --rebuild         # Force rebuild then start HTTP
+   ./run-deployment.sh up https --rebuild        # Force rebuild then start HTTPS
+   ./run-deployment.sh up letsencrypt --rebuild  # Force rebuild then start Let's Encrypt
+   
    # Stop deployments
    ./run-deployment.sh down http        # Stop HTTP mode
    ./run-deployment.sh down https       # Stop HTTPS mode
@@ -197,14 +245,57 @@ The `docker-deployment/run-deployment.sh` script handles individual deployment o
    
    # Build Docker images
    ./run-deployment.sh build                    # Build for current architecture
+   ./run-deployment.sh build --force            # Force rebuild (remove existing image)
    ./run-deployment.sh build x86_64-linux      # Build for x86_64
+   ./run-deployment.sh build --force x86_64-linux    # Force rebuild for x86_64
    ./run-deployment.sh build aarch64-linux     # Build for ARM64
    ./run-deployment.sh build-multiarch         # Build multiarch (both x86_64 and ARM64)
                                                 # Note: Falls back to current architecture if cross-compilation unavailable
+   ./run-deployment.sh build-multiarch --force # Force multiarch rebuild
    
    # Build and push to registry
    ./run-deployment.sh build x86_64-linux docker.io/myuser/app:v1.0
+   ./run-deployment.sh build --force aarch64-linux docker.io/myuser/app:v1.0
    ./run-deployment.sh build-multiarch docker.io/myuser/app:v1.0
+   ./run-deployment.sh build-multiarch --force docker.io/myuser/app:v1.0
+
+**Force Rebuild Options:**
+
+The deployment script provides force rebuild functionality to ensure you always get the latest changes:
+
+**--force flag (for build commands):**
+  - Removes existing Docker images before building
+  - Clears Nix build cache and result files
+  - Runs garbage collection to free up space
+  - Forces fresh flake lock file update
+  - Bypasses all caching mechanisms
+
+**--rebuild flag (for up command):**
+  - Alias for --force when used with the up command
+  - Automatically rebuilds the image before starting services
+  - Ensures deployment uses the absolute latest code changes
+
+**When to Use Force Rebuild:**
+
+Use force rebuild when:
+  - Your source code has changed but Docker still uses old cached layers
+  - You suspect build cache issues or stale dependencies
+  - You want to ensure completely fresh build for testing
+  - You're debugging build-related issues
+  - You want to free up disk space from old build artifacts
+
+.. code-block:: bash
+
+   # Development workflow with force rebuild
+   # Make code changes, then ensure clean rebuild
+   ./run-deployment.sh build --force
+   ./run-deployment.sh up http
+   
+   # Or combine into one command
+   ./run-deployment.sh up http --rebuild
+   
+   # CI/CD with guaranteed fresh builds
+   ./run-deployment.sh build-multiarch --force registry/app:$VERSION
 
 1. **HTTP only (for local development)**
    - This is the simplest setup, serving your application over HTTP without SSL.
@@ -537,17 +628,55 @@ The profiling system is configured via environment variables and generates confi
 
    # Single architecture (matches your current Linux system)
    ./run-deployment.sh build
+   ./run-deployment.sh build --force               # Force clean rebuild
    
    # Specific architecture
    ./run-deployment.sh build x86_64-linux
+   ./run-deployment.sh build --force x86_64-linux  # Force clean rebuild for x86_64
    ./run-deployment.sh build aarch64-linux
+   ./run-deployment.sh build --force aarch64-linux # Force clean rebuild for ARM64
    
    # Multiarch build (attempts both architectures, falls back to current if cross-compilation unavailable)
    ./run-deployment.sh build-multiarch
+   ./run-deployment.sh build-multiarch --force     # Force clean multiarch rebuild
    
    # Push to registry
    ./run-deployment.sh build x86_64-linux docker.io/myuser/arbeitszeitapp:latest
+   ./run-deployment.sh build --force aarch64-linux docker.io/myuser/arbeitszeitapp:latest
    ./run-deployment.sh build-multiarch docker.io/myuser/arbeitszeitapp:latest
+   ./run-deployment.sh build-multiarch --force docker.io/myuser/arbeitszeitapp:latest
+
+**Build Process Optimizations:**
+
+The build system includes several optimizations to prevent common build issues:
+
+**Automatic Flake Updates:**
+  - The build process automatically runs ``nix flake update`` before building
+  - Prevents narHash mismatch errors when source code changes
+  - Ensures build uses the latest dependency versions
+  - Warns if flake update fails but continues with build
+
+**Build Cache Management:**
+  - Normal builds reuse existing Docker layers and Nix cache for speed
+  - Force rebuilds (``--force`` flag) clear all caches for guaranteed fresh builds
+  - Automatic garbage collection in force rebuilds to free disk space
+  - Cross-compilation results are cached separately per architecture
+
+**Error Prevention:**
+  - Automatic detection of missing build dependencies (Nix, Docker)
+  - Cross-compilation trust validation for Nix users
+  - Operating system compatibility checks (Linux required for building)
+  - Image existence validation before starting deployments
+
+.. code-block:: bash
+
+   # Example: Force rebuild workflow
+   # This ensures completely fresh build with latest dependencies
+   ./run-deployment.sh build --force               # Clean rebuild
+   
+   # Example: Development with automatic updates
+   # Normal build with automatic flake updates
+   ./run-deployment.sh build                       # Build with latest flake inputs
 
 **Building ONLY the Application Docker Image**
 

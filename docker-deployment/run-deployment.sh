@@ -13,7 +13,7 @@
 set -e
 
 usage() {
-  echo "Usage: $0 {up|down|build|build-multiarch} {mode|arch|registry}"
+  echo "Usage: $0 {up|down|build|build-multiarch} [options] {mode|arch|registry}"
   echo
   echo "Commands:"
   echo "  up              Start the services in the selected mode (in the background)."
@@ -22,6 +22,10 @@ usage() {
   echo "  build-multiarch Build and optionally push multiarch Docker image."
   echo "                  Note: Cross-compilation may not be available on all systems."
   echo "                  Will build for current architecture if cross-compilation fails."
+  echo
+  echo "Options:"
+  echo "  --force         Force rebuild by removing existing images and clearing caches"
+  echo "  --rebuild       Alias for --force (for up command only)"
   echo
   echo "IMPORTANT: Building Docker images requires a Linux system."
   echo "If you're on macOS or Windows, use a Linux VM or CI/CD pipeline."
@@ -41,10 +45,14 @@ usage() {
   echo
   echo "Examples:"
   echo "  $0 up letsencrypt                           # Start with Let's Encrypt"
+  echo "  $0 up http --rebuild                        # Force rebuild then start"
   echo "  $0 build                                    # Build for current architecture"
+  echo "  $0 build --force                            # Force rebuild (remove existing image)"
   echo "  $0 build x86_64-linux                      # Build for x86_64"
+  echo "  $0 build --force x86_64-linux              # Force rebuild for x86_64"
   echo "  $0 build aarch64-linux docker.io/user/app:v1.0  # Build ARM64 and push"
   echo "  $0 build-multiarch                         # Build multiarch locally"
+  echo "  $0 build-multiarch --force                 # Force multiarch rebuild"
   echo "  $0 build-multiarch docker.io/user/app:v1.0 # Build multiarch and push"
   exit 1
 }
@@ -119,6 +127,39 @@ update_flake_lock() {
   else
     echo "[INFO] Flake lock file updated successfully"
   fi
+}
+
+# Force rebuild cleanup: remove existing images and clear build caches
+force_rebuild_cleanup() {
+  local image_name="${ARBEITSZEITAPP_IMAGE:-arbeitszeitapp:latest}"
+  
+  echo "[INFO] Force rebuild requested - cleaning up existing artifacts..."
+  
+  # Remove existing Docker image
+  if docker image inspect "$image_name" >/dev/null 2>&1; then
+    echo "[INFO] Removing existing Docker image: $image_name"
+    docker rmi "$image_name" 2>/dev/null || true
+  fi
+  
+  # Remove architecture-specific images that might exist from multiarch builds
+  for tag in latest-amd64 latest-arm64; do
+    if docker image inspect "arbeitszeitapp:$tag" >/dev/null 2>&1; then
+      echo "[INFO] Removing existing Docker image: arbeitszeitapp:$tag"
+      docker rmi "arbeitszeitapp:$tag" 2>/dev/null || true
+    fi
+  done
+  
+  # Clear Nix build results
+  echo "[INFO] Clearing Nix build cache..."
+  rm -f ../result ../result-* 2>/dev/null || true
+  
+  # Run nix-collect-garbage to clean up build dependencies (optional, but helps with space)
+  if command -v nix-collect-garbage >/dev/null 2>&1; then
+    echo "[INFO] Running garbage collection to free up space..."
+    nix-collect-garbage 2>/dev/null || true
+  fi
+  
+  echo "[INFO] Force rebuild cleanup complete"
 }
 
 # Validate configuration for the selected mode
@@ -204,13 +245,36 @@ validate_config() {
   return 0
 }
 
-if [ $# -lt 1 ] || [ $# -gt 3 ]; then
+if [ $# -lt 1 ] || [ $# -gt 4 ]; then
   usage
 fi
 
 COMMAND="$1"
-ARG2="${2:-}"
-ARG3="${3:-}"
+FORCE_REBUILD=false
+ARG2=""
+ARG3=""
+
+# Parse arguments and flags
+shift
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --force|--rebuild)
+      FORCE_REBUILD=true
+      shift
+      ;;
+    *)
+      if [[ -z "$ARG2" ]]; then
+        ARG2="$1"
+      elif [[ -z "$ARG3" ]]; then
+        ARG3="$1"
+      else
+        echo "Error: Too many arguments."
+        usage
+      fi
+      shift
+      ;;
+  esac
+done
 
 # Execute command
 case "$COMMAND" in
@@ -251,6 +315,19 @@ case "$COMMAND" in
     
     case "$COMMAND" in
       up)
+        # Handle force rebuild flag
+        if [[ "$FORCE_REBUILD" == "true" ]]; then
+          echo "[INFO] Force rebuild requested for up command..."
+          force_rebuild_cleanup
+          echo "[INFO] Building Docker image for current architecture..."
+          if ! "$0" build; then
+            echo "[ERROR] Force rebuild failed. Please check the error messages above."
+            exit 1
+          fi
+          echo "[INFO] Force rebuild successful! Starting deployment..."
+          echo ""
+        fi
+        
         # Check if arbeitszeitapp image exists before starting
         IMAGE_NAME="${ARBEITSZEITAPP_IMAGE:-arbeitszeitapp:latest}"
         if ! docker image inspect "$IMAGE_NAME" >/dev/null 2>&1; then
@@ -403,6 +480,11 @@ case "$COMMAND" in
     
     echo "[INFO] Building Docker image for $ARCH..."
     
+    # Handle force rebuild flag
+    if [[ "$FORCE_REBUILD" == "true" ]]; then
+      force_rebuild_cleanup
+    fi
+    
     # Update flake lock file to prevent narHash mismatches
     update_flake_lock
     
@@ -476,6 +558,11 @@ case "$COMMAND" in
     # Define target architectures
     target_archs=("x86_64-linux" "aarch64-linux")
     built_images=()
+    
+    # Handle force rebuild flag
+    if [[ "$FORCE_REBUILD" == "true" ]]; then
+      force_rebuild_cleanup
+    fi
     
     # Update flake lock file to prevent narHash mismatches
     update_flake_lock
