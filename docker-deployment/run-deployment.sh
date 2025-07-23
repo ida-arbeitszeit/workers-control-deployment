@@ -49,6 +49,99 @@ usage() {
   exit 1
 }
 
+# Load environment variables from .env file
+load_env() {
+  if [[ -f .env ]]; then
+    # Export variables from .env file, ignoring comments and empty lines
+    set -a
+    source .env
+    set +a
+  fi
+}
+
+# Validate configuration for the selected mode
+validate_config() {
+  local mode="$1"
+  
+  case "$mode" in
+    http)
+      # HTTP mode - minimal validation
+      if [[ -z "$SERVER_NAME" ]]; then
+        echo "[ERROR] SERVER_NAME is required in .env file"
+        return 1
+      fi
+      ;;
+    https)
+      # HTTPS mode - requires SERVER_NAME and certificates
+      if [[ -z "$SERVER_NAME" ]]; then
+        echo "[ERROR] SERVER_NAME is required in .env file for HTTPS mode"
+        return 1
+      fi
+      
+      if [[ ! -f "certs/fullchain.pem" ]] || [[ ! -f "certs/privkey.pem" ]]; then
+        echo "[ERROR] HTTPS mode requires SSL certificates"
+        echo "Missing files: certs/fullchain.pem and/or certs/privkey.pem"
+        echo ""
+        echo "For HTTPS mode, you need to provide your own SSL certificates:"
+        echo "1. Place your certificate files in the certs/ directory:"
+        echo "   - certs/fullchain.pem (certificate + intermediate chain)"
+        echo "   - certs/privkey.pem (private key)"
+        echo ""
+        echo "2. Or use Let's Encrypt mode instead:"
+        echo "   ./run-deployment.sh up letsencrypt"
+        return 1
+      fi
+      ;;
+    letsencrypt)
+      # Let's Encrypt mode - strict validation
+      local errors=0
+      
+      if [[ -z "$SERVER_NAME" ]]; then
+        echo "[ERROR] SERVER_NAME is required in .env file for Let's Encrypt mode"
+        errors=1
+      elif [[ "$SERVER_NAME" == "localhost" ]] || [[ "$SERVER_NAME" == "127.0.0.1" ]] || [[ "$SERVER_NAME" =~ ^192\.168\. ]] || [[ "$SERVER_NAME" =~ ^10\. ]] || [[ "$SERVER_NAME" =~ ^172\.(1[6-9]|2[0-9]|3[0-1])\. ]]; then
+        echo "[ERROR] SERVER_NAME='$SERVER_NAME' is not valid for Let's Encrypt"
+        echo "Let's Encrypt requires a publicly accessible domain name."
+        echo "You cannot use localhost, IP addresses, or private network addresses."
+        errors=1
+      elif [[ ! "$SERVER_NAME" =~ \. ]]; then
+        echo "[ERROR] SERVER_NAME='$SERVER_NAME' appears to be invalid"
+        echo "Let's Encrypt requires a fully qualified domain name (e.g., example.com)"
+        errors=1
+      fi
+      
+      if [[ -z "$LETSENCRYPT_EMAIL" ]]; then
+        echo "[ERROR] LETSENCRYPT_EMAIL is required in .env file for Let's Encrypt mode"
+        errors=1
+      elif [[ "$LETSENCRYPT_EMAIL" == "test@example.com" ]] || [[ "$LETSENCRYPT_EMAIL" == "user@example.com" ]] || [[ "$LETSENCRYPT_EMAIL" =~ @example\.(com|org)$ ]]; then
+        echo "[ERROR] LETSENCRYPT_EMAIL='$LETSENCRYPT_EMAIL' appears to be a placeholder"
+        echo "Let's Encrypt requires a valid email address for certificate notifications."
+        errors=1
+      elif [[ ! "$LETSENCRYPT_EMAIL" =~ ^[^@]+@[^@]+\.[^@]+$ ]]; then
+        echo "[ERROR] LETSENCRYPT_EMAIL='$LETSENCRYPT_EMAIL' is not a valid email address"
+        errors=1
+      fi
+      
+      if [[ $errors -eq 1 ]]; then
+        echo ""
+        echo "To fix the Let's Encrypt configuration:"
+        echo "1. Edit the .env file and set:"
+        echo "   SERVER_NAME=your-domain.com        # Your actual domain"
+        echo "   LETSENCRYPT_EMAIL=you@yourdomain.com  # Your real email"
+        echo ""
+        echo "2. Ensure your domain points to this server's public IP address"
+        echo "3. Ensure ports 80 and 443 are accessible from the internet"
+        echo ""
+        echo "For local development, consider using 'http' mode instead:"
+        echo "   ./run-deployment.sh up http"
+        return 1
+      fi
+      ;;
+  esac
+  
+  return 0
+}
+
 if [ $# -lt 1 ] || [ $# -gt 3 ]; then
   usage
 fi
@@ -68,6 +161,14 @@ case "$COMMAND" in
     
     # Change to the docker-deployment directory (we're already here)
     cd "$(dirname "$0")"
+    
+    # Load environment variables
+    load_env
+    
+    # Validate configuration for the selected mode
+    if ! validate_config "$MODE"; then
+      exit 1
+    fi
     
     # Set compose files based on mode
     case "$MODE" in
