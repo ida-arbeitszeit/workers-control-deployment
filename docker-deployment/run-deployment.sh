@@ -59,6 +59,52 @@ load_env() {
   fi
 }
 
+# Check if required tools are installed for build operations
+check_build_dependencies() {
+  local missing_tools=()
+  
+  # Check for Nix
+  if ! command -v nix >/dev/null 2>&1; then
+    missing_tools+=("nix")
+  fi
+  
+  # Check for Docker
+  if ! command -v docker >/dev/null 2>&1; then
+    missing_tools+=("docker")
+  fi
+  
+  if [[ ${#missing_tools[@]} -gt 0 ]]; then
+    echo "[ERROR] Missing required tools for building Docker images:"
+    for tool in "${missing_tools[@]}"; do
+      echo "  - $tool"
+    done
+    echo ""
+    echo "To build Docker images, you need:"
+    echo ""
+    echo "1. NIX PACKAGE MANAGER:"
+    echo "   - Install: curl -L https://nixos.org/nix/install | sh"
+    echo "   - Or use NixOS: https://nixos.org/download.html"
+    echo "   - Restart shell after installation"
+    echo ""
+    echo "2. DOCKER:"
+    echo "   - Install Docker Engine: https://docs.docker.com/engine/install/"
+    echo "   - Ensure Docker daemon is running"
+    echo "   - Add user to docker group: sudo usermod -aG docker \$USER"
+    echo ""
+    echo "3. ALTERNATIVE: Use pre-built images from a registry:"
+    echo "   export ARBEITSZEITAPP_IMAGE=registry.example.com/arbeitszeitapp:latest"
+    echo "   ./run-deployment.sh up [mode]"
+    echo ""
+    echo "4. ALTERNATIVE: Use CI/CD pipeline for building:"
+    echo "   - GitHub Actions can build images with all dependencies pre-installed"
+    echo "   - Push built images to a container registry"
+    echo ""
+    return 1
+  fi
+  
+  return 0
+}
+
 # Validate configuration for the selected mode
 validate_config() {
   local mode="$1"
@@ -249,6 +295,11 @@ case "$COMMAND" in
     ARCH="$ARG2"
     REGISTRY="$ARG3"
     
+    # Check if required build tools are available
+    if ! check_build_dependencies; then
+      exit 1
+    fi
+    
     # Check if we're running on a supported OS
     if [[ "$(uname -s)" != "Linux" ]]; then
       echo "ERROR: Docker image building is only supported on Linux."
@@ -368,6 +419,11 @@ case "$COMMAND" in
     REGISTRY="$ARG2"
     
     echo "[INFO] Building multiarch Docker image..."
+    
+    # Check if required build tools are available
+    if ! check_build_dependencies; then
+      exit 1
+    fi
     
     # Check if we're running on a supported OS
     if [[ "$(uname -s)" != "Linux" ]]; then
