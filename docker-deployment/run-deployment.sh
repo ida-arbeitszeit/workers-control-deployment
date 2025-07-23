@@ -105,6 +105,22 @@ check_build_dependencies() {
   return 0
 }
 
+# Update Nix flake lock file to prevent narHash mismatches
+update_flake_lock() {
+  echo "[INFO] Updating Nix flake lock file..."
+  
+  # Change to parent directory where flake.nix is located
+  if ! (cd .. && nix --extra-experimental-features nix-command --extra-experimental-features flakes flake update); then
+    echo "[WARN] Failed to update flake lock file"
+    echo "[WARN] This may cause build issues if source code has changed"
+    echo "[WARN] You can manually run: nix flake update"
+    echo ""
+    # Don't fail here, as the build might still work
+  else
+    echo "[INFO] Flake lock file updated successfully"
+  fi
+}
+
 # Validate configuration for the selected mode
 validate_config() {
   local mode="$1"
@@ -387,6 +403,9 @@ case "$COMMAND" in
     
     echo "[INFO] Building Docker image for $ARCH..."
     
+    # Update flake lock file to prevent narHash mismatches
+    update_flake_lock
+    
     # Build the image (go to parent directory for flake.nix)
     if ! (cd .. && nix --extra-experimental-features nix-command --extra-experimental-features flakes build .#dockerImage --system "$ARCH"); then
       echo "ERROR: Failed to build $ARCH image"
@@ -457,6 +476,9 @@ case "$COMMAND" in
     # Define target architectures
     target_archs=("x86_64-linux" "aarch64-linux")
     built_images=()
+    
+    # Update flake lock file to prevent narHash mismatches
+    update_flake_lock
     
     # Build for each architecture, but handle cross-compilation gracefully
     for arch in "${target_archs[@]}"; do

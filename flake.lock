@@ -4,12 +4,12 @@
       "inputs": {
         "flake-utils": "flake-utils",
         "flask-profiler": "flask-profiler",
-        "nixos-24-11": "nixos-24-11",
+        "nixos-25-05": "nixos-25-05",
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1753012770,
-        "narHash": "sha256-gkrEoDJuz+kwbPCbQ82Sdqg2Qjt5/ozA6c7eIzIkbDo=",
+        "lastModified": 1753280939,
+        "narHash": "sha256-o7gwPMS6qYattlUKhXbIGHtGcCoJgfE/bogwwQzIgMI=",
         "path": "/Users/petscho/arbeitszeitapp",
         "type": "path"
       },
@@ -91,18 +91,18 @@
         "type": "github"
       }
     },
-    "nixos-24-11": {
+    "nixos-25-05": {
       "locked": {
-        "lastModified": 1744440957,
-        "narHash": "sha256-FHlSkNqFmPxPJvy+6fNLaNeWnF1lZSgqVCl/eWaJRc4=",
+        "lastModified": 1752866191,
+        "narHash": "sha256-NV4S2Lf2hYmZQ3Qf4t/YyyBaJNuxLPyjzvDma0zPp/M=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "26d499fc9f1d567283d5d56fcf367edd815dba1d",
+        "rev": "f01fe91b0108a7aff99c99f2e9abbc45db0adc2a",
         "type": "github"
       },
       "original": {
         "owner": "NixOS",
-        "ref": "nixos-24.11",
+        "ref": "nixos-25.05",
         "repo": "nixpkgs",
         "type": "github"
       }
@@ -157,11 +157,11 @@
     },
     "nixpkgs_2": {
       "locked": {
-        "lastModified": 1744536153,
-        "narHash": "sha256-awS2zRgF4uTwrOKwwiJcByDzDOdo3Q1rPZbiHQg/N38=",
+        "lastModified": 1752900028,
+        "narHash": "sha256-dPALCtmik9Wr14MGqVXm+OQcv7vhPBXcWNIOThGnB/Q=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "18dd725c29603f582cf1900e0d25f9f1063dbf11",
+        "rev": "6b4955211758ba47fac850c040a27f23b9b4008f",
         "type": "github"
       },
       "original": {
