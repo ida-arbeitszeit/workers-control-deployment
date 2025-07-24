@@ -170,12 +170,12 @@ check_prerequisites() {
         exit 1
     fi
     
-    if [[ ! -f "docker-deployment/run-deployment.sh" ]]; then
+    if [[ ! -f "$PROJECT_ROOT/docker-deployment/run-deployment.sh" ]]; then
         error "run-deployment.sh not found. Make sure you're in the correct project directory."
         exit 1
     fi
     
-    if [[ ! -f "flake.nix" ]]; then
+    if [[ ! -f "$PROJECT_ROOT/flake.nix" ]]; then
         error "flake.nix not found. Make sure you're in the correct project directory."
         exit 1
     fi
@@ -191,7 +191,7 @@ update_flake_inputs() {
     fi
     
     log "Updating flake inputs..."
-    if nix --extra-experimental-features nix-command --extra-experimental-features flakes flake update --commit-lock-file; then
+    if (cd "$PROJECT_ROOT" && nix --extra-experimental-features nix-command --extra-experimental-features flakes flake update --commit-lock-file); then
         log "Flake inputs updated successfully"
     else
         error "Failed to update flake inputs"
@@ -201,7 +201,7 @@ update_flake_inputs() {
 
 # Get current PostgreSQL version from Docker Compose files
 get_current_postgres_version() {
-    local compose_file="docker-deployment/docker-compose.yml"
+    local compose_file="$PROJECT_ROOT/docker-deployment/docker-compose.yml"
     if [[ -f "$compose_file" ]]; then
         grep "image: postgres:" "$compose_file" | head -1 | sed 's/.*postgres:\([0-9]*\).*/\1/'
     else
@@ -211,7 +211,9 @@ get_current_postgres_version() {
 
 # Get running PostgreSQL version
 get_running_postgres_version() {
-    if docker compose -f docker-deployment/docker-compose.yml exec db psql -U arbeitszeitapp -t -c "SELECT version();" 2>/dev/null | grep -o "PostgreSQL [0-9]*" | grep -o "[0-9]*"; then
+    local compose_files
+    compose_files=$(get_compose_files)
+    if docker compose $compose_files exec db psql -U arbeitszeitapp -t -c "SELECT version();" 2>/dev/null | grep -o "PostgreSQL [0-9]*" | grep -o "[0-9]*"; then
         return 0
     else
         echo "unknown"
@@ -289,7 +291,8 @@ build_docker_image() {
         build_args="--verbose"
     fi
     
-    if docker-deployment/run-deployment.sh build $build_args; then
+    # Change to docker-deployment directory to run the build script
+    if (cd "$PROJECT_ROOT/docker-deployment" && ./run-deployment.sh build $build_args); then
         log "Docker image built successfully"
     else
         error "Failed to build Docker image"
@@ -299,15 +302,16 @@ build_docker_image() {
 
 # Determine compose files for the deployment mode
 get_compose_files() {
+    local deployment_dir="$PROJECT_ROOT/docker-deployment"
     case "$DEPLOYMENT_MODE" in
         http)
-            echo "-f docker-deployment/docker-compose.yml -f docker-deployment/docker-compose.override.yml"
+            echo "-f $deployment_dir/docker-compose.yml -f $deployment_dir/docker-compose.override.yml"
             ;;
         https)
-            echo "-f docker-deployment/docker-compose.yml -f docker-deployment/docker-compose.override.yml -f docker-deployment/docker-compose.https.yml"
+            echo "-f $deployment_dir/docker-compose.yml -f $deployment_dir/docker-compose.override.yml -f $deployment_dir/docker-compose.https.yml"
             ;;
         letsencrypt)
-            echo "-f docker-deployment/docker-compose.letsencrypt.yml"
+            echo "-f $deployment_dir/docker-compose.letsencrypt.yml"
             ;;
     esac
 }
@@ -340,7 +344,7 @@ update_deployment() {
             ;;
         full)
             log "Performing full restart..."
-            if docker-deployment/run-deployment.sh down "$DEPLOYMENT_MODE" && docker-deployment/run-deployment.sh up "$DEPLOYMENT_MODE"; then
+            if (cd "$PROJECT_ROOT/docker-deployment" && ./run-deployment.sh down "$DEPLOYMENT_MODE" && ./run-deployment.sh up "$DEPLOYMENT_MODE"); then
                 log "Full restart completed"
             else
                 error "Full restart failed"
@@ -370,9 +374,9 @@ verify_deployment() {
     fi
     
     # Run health tests if available
-    if [[ -f "tests/docker/test-deployments.sh" ]]; then
+    if [[ -f "$PROJECT_ROOT/tests/docker/test-deployments.sh" ]]; then
         info "Running deployment health tests..."
-        if ./tests/docker/test-deployments.sh --modes "$DEPLOYMENT_MODE"; then
+        if (cd "$PROJECT_ROOT" && ./tests/docker/test-deployments.sh --modes "$DEPLOYMENT_MODE"); then
             log "Health tests passed"
         else
             warn "Health tests failed - check logs for details"

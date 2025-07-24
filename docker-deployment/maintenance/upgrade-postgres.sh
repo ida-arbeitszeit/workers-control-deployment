@@ -31,7 +31,7 @@ error() {
 
 # Determine the correct project root directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 # Check if we can find the required files
 if [[ ! -f "$PROJECT_ROOT/docker-deployment/run-deployment.sh" ]]; then
@@ -61,7 +61,7 @@ log "Starting PostgreSQL upgrade from version $OLD_VERSION to $NEW_VERSION"
 
 # Step 1: Backup current database
 log "Step 1: Creating database backup"
-if docker compose -f docker-deployment/docker-compose.yml exec db pg_dump -U arbeitszeitapp arbeitszeitapp > "$BACKUP_DIR/backup_${TIMESTAMP}.sql"; then
+if docker compose -f "$PROJECT_ROOT/docker-deployment/docker-compose.yml" exec db pg_dump -U arbeitszeitapp arbeitszeitapp > "$BACKUP_DIR/backup_${TIMESTAMP}.sql"; then
     log "Database backup created: $BACKUP_DIR/backup_${TIMESTAMP}.sql"
 else
     error "Failed to create database backup"
@@ -70,7 +70,7 @@ fi
 
 # Step 2: Stop deployment
 log "Step 2: Stopping deployment"
-if (cd docker-deployment && ./run-deployment.sh down http) 2>/dev/null || (cd docker-deployment && ./run-deployment.sh down https) 2>/dev/null || (cd docker-deployment && ./run-deployment.sh down letsencrypt) 2>/dev/null; then
+if (cd "$PROJECT_ROOT/docker-deployment" && ./run-deployment.sh down http) 2>/dev/null || (cd "$PROJECT_ROOT/docker-deployment" && ./run-deployment.sh down https) 2>/dev/null || (cd "$PROJECT_ROOT/docker-deployment" && ./run-deployment.sh down letsencrypt) 2>/dev/null; then
     log "Deployment stopped"
 else
     warn "Could not stop deployment (it might not be running)"
@@ -78,7 +78,7 @@ fi
 
 # Step 3: Update Docker Compose files
 log "Step 3: Updating PostgreSQL version in Docker Compose files"
-for file in docker-deployment/docker-compose.yml docker-deployment/docker-compose.https.yml docker-deployment/docker-compose.letsencrypt.yml; do
+for file in "$PROJECT_ROOT/docker-deployment/docker-compose.yml" "$PROJECT_ROOT/docker-deployment/docker-compose.https.yml" "$PROJECT_ROOT/docker-deployment/docker-compose.letsencrypt.yml"; do
     if [[ -f "$file" ]]; then
         sed -i.bak "s/postgres:${OLD_VERSION}-alpine/postgres:${NEW_VERSION}-alpine/g" "$file"
         log "Updated $file"
@@ -117,7 +117,7 @@ if [[ -n "${DEPLOYMENT_MODE:-}" ]]; then
 else
     read -p "Which deployment mode? (http/https/letsencrypt) " -r mode
 fi
-if (cd docker-deployment && ./run-deployment.sh up "$mode"); then
+if (cd "$PROJECT_ROOT/docker-deployment" && ./run-deployment.sh up "$mode"); then
     log "Deployment started with PostgreSQL $NEW_VERSION"
 else
     error "Failed to start deployment"
@@ -127,14 +127,14 @@ fi
 # Step 6: Wait for database to be ready
 log "Step 6: Waiting for database to be ready"
 sleep 10
-while ! docker compose -f docker-deployment/docker-compose.yml exec db pg_isready -U arbeitszeitapp >/dev/null 2>&1; do
+while ! docker compose -f "$PROJECT_ROOT/docker-deployment/docker-compose.yml" exec db pg_isready -U arbeitszeitapp >/dev/null 2>&1; do
     log "Waiting for database..."
     sleep 5
 done
 
 # Step 7: Restore backup
 log "Step 7: Restoring database backup"
-if docker compose -f docker-deployment/docker-compose.yml exec -T db psql -U arbeitszeitapp -d arbeitszeitapp < "$BACKUP_DIR/backup_${TIMESTAMP}.sql"; then
+if docker compose -f "$PROJECT_ROOT/docker-deployment/docker-compose.yml" exec -T db psql -U arbeitszeitapp -d arbeitszeitapp < "$BACKUP_DIR/backup_${TIMESTAMP}.sql"; then
     log "Database backup restored successfully"
 else
     error "Failed to restore database backup"
@@ -143,7 +143,7 @@ fi
 
 # Step 8: Verify upgrade
 log "Step 8: Verifying upgrade"
-NEW_DB_VERSION=$(docker compose -f docker-deployment/docker-compose.yml exec db psql -U arbeitszeitapp -t -c "SELECT version();" | head -1)
+NEW_DB_VERSION=$(docker compose -f "$PROJECT_ROOT/docker-deployment/docker-compose.yml" exec db psql -U arbeitszeitapp -t -c "SELECT version();" | head -1)
 log "New PostgreSQL version: $NEW_DB_VERSION"
 
 log "PostgreSQL upgrade completed successfully!"
