@@ -539,6 +539,7 @@ All modes use the same ``.env`` file for configuration:
    SERVER_TYPE=flask  # Options: flask, dev, development, uwsgi, prod, production
    
    # Email configuration (required)
+   MAIL_BACKEND=flask_mail  # Use real SMTP for production (omit for development debug mode)
    MAIL_SERVER=smtp.gmail.com
    MAIL_PORT=587
    MAIL_USERNAME=your-email@gmail.com
@@ -601,15 +602,20 @@ To use file-based configurations instead of environment variables:
 
 The application requires email functionality for core features like user registration, password resets, and notifications. Mail configuration is handled via environment variables:
 
-- **MAIL_SERVER**: SMTP server hostname (e.g., ``smtp.gmail.com``) - **Required**
+- **MAIL_BACKEND**: Mail service backend selection (optional)
+  
+  - Unset or empty: Uses ``DebugMailService`` (prints emails to stdout - for development/testing)
+  - ``flask_mail``: Uses ``SmtpMailService`` (sends real emails via SMTP - for production)
+  
+- **MAIL_SERVER**: SMTP server hostname (e.g., ``smtp.gmail.com``) - **Required for SMTP**
 - **MAIL_PORT**: SMTP server port (default: 587)
-- **MAIL_USERNAME**: SMTP username/email address - **Required**
-- **MAIL_PASSWORD**: SMTP password or app-specific password - **Required**
+- **MAIL_USERNAME**: SMTP username/email address - **Required for SMTP**
+- **MAIL_PASSWORD**: SMTP password or app-specific password - **Required for SMTP**
 - **MAIL_DEFAULT_SENDER**: Default sender email address - **Required**
 - **MAIL_USE_TLS**: Enable TLS encryption (default: true)
 - **MAIL_USE_SSL**: Enable SSL encryption (default: false)
 
-**Important:** Email configuration is **required** for the application to function properly. Without valid email settings, user registration and password reset functionality will not work.
+**Important:** Email configuration is **required** for the application to function properly. For development and testing, you can leave ``MAIL_BACKEND`` unset to use the debug mail service (emails will be printed to stdout instead of sent). For production, set ``MAIL_BACKEND=flask_mail`` and configure all SMTP settings.
 
 **Common SMTP Providers:**
 
