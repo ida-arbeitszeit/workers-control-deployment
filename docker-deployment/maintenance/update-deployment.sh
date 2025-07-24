@@ -9,7 +9,6 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 BACKUP_DIR="$PROJECT_ROOT/backups"
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 
 # Colors for output
 RED='\033[0;31m'
@@ -50,7 +49,7 @@ debug() {
 }
 
 usage() {
-    cat << EOF
+    cat <<EOF
 Usage: $0 [OPTIONS]
 
 Comprehensive deployment update script that handles:
@@ -95,40 +94,40 @@ EOF
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
-        -m|--mode)
-            DEPLOYMENT_MODE="$2"
-            shift 2
-            ;;
-        -d|--downtime)
-            DOWNTIME_TOLERANCE="$2"
-            shift 2
-            ;;
-        -p|--postgres)
-            FORCE_POSTGRES_UPGRADE=true
-            NEW_POSTGRES_VERSION="$2"
-            shift 2
-            ;;
-        --skip-flake-update)
-            SKIP_FLAKE_UPDATE=true
-            shift
-            ;;
-        --skip-postgres-check)
-            SKIP_POSTGRES_CHECK=true
-            shift
-            ;;
-        -v|--verbose)
-            VERBOSE=true
-            shift
-            ;;
-        -h|--help)
-            usage
-            exit 0
-            ;;
-        *)
-            error "Unknown option: $1"
-            usage
-            exit 1
-            ;;
+    -m | --mode)
+        DEPLOYMENT_MODE="$2"
+        shift 2
+        ;;
+    -d | --downtime)
+        DOWNTIME_TOLERANCE="$2"
+        shift 2
+        ;;
+    -p | --postgres)
+        FORCE_POSTGRES_UPGRADE=true
+        NEW_POSTGRES_VERSION="$2"
+        shift 2
+        ;;
+    --skip-flake-update)
+        SKIP_FLAKE_UPDATE=true
+        shift
+        ;;
+    --skip-postgres-check)
+        SKIP_POSTGRES_CHECK=true
+        shift
+        ;;
+    -v | --verbose)
+        VERBOSE=true
+        shift
+        ;;
+    -h | --help)
+        usage
+        exit 0
+        ;;
+    *)
+        error "Unknown option: $1"
+        usage
+        exit 1
+        ;;
     esac
 done
 
@@ -154,32 +153,32 @@ cd "$PROJECT_ROOT"
 # Check prerequisites
 check_prerequisites() {
     log "Checking prerequisites..."
-    
-    if ! command -v nix &> /dev/null; then
+
+    if ! command -v nix &>/dev/null; then
         error "Nix is not installed or not in PATH"
         exit 1
     fi
-    
-    if ! command -v docker &> /dev/null; then
+
+    if ! command -v docker &>/dev/null; then
         error "Docker is not installed or not in PATH"
         exit 1
     fi
-    
+
     if ! docker info >/dev/null 2>&1; then
         error "Docker is not running"
         exit 1
     fi
-    
+
     if [[ ! -f "$PROJECT_ROOT/docker-deployment/run-deployment.sh" ]]; then
         error "run-deployment.sh not found. Make sure you're in the correct project directory."
         exit 1
     fi
-    
+
     if [[ ! -f "$PROJECT_ROOT/flake.nix" ]]; then
         error "flake.nix not found. Make sure you're in the correct project directory."
         exit 1
     fi
-    
+
     debug "Prerequisites check passed"
 }
 
@@ -189,7 +188,7 @@ update_flake_inputs() {
         info "Skipping flake input updates"
         return
     fi
-    
+
     log "Updating flake inputs..."
     if (cd "$PROJECT_ROOT" && nix --extra-experimental-features nix-command --extra-experimental-features flakes flake update --commit-lock-file); then
         log "Flake inputs updated successfully"
@@ -205,7 +204,7 @@ get_current_postgres_version() {
     if [[ -f "$compose_file" ]]; then
         grep "image: postgres:" "$compose_file" | head -1 | sed 's/.*postgres:\([0-9]*\).*/\1/'
     else
-        echo "15"  # Default fallback
+        echo "15" # Default fallback
     fi
 }
 
@@ -213,7 +212,7 @@ get_current_postgres_version() {
 get_running_postgres_version() {
     local compose_files
     compose_files=$(get_compose_files)
-    if docker compose $compose_files exec db psql -U arbeitszeitapp -t -c "SELECT version();" 2>/dev/null | grep -o "PostgreSQL [0-9]*" | grep -o "[0-9]*"; then
+    if docker compose "$compose_files" exec db psql -U arbeitszeitapp -t -c "SELECT version();" 2>/dev/null | grep -o "PostgreSQL [0-9]*" | grep -o "[0-9]*"; then
         return 0
     else
         echo "unknown"
@@ -226,20 +225,20 @@ check_postgres_upgrade() {
         info "Skipping PostgreSQL version check"
         return
     fi
-    
+
     log "Checking PostgreSQL version..."
-    
+
     local current_version
     current_version=$(get_current_postgres_version)
-    
+
     local running_version
     running_version=$(get_running_postgres_version)
-    
+
     info "Current PostgreSQL version in compose files: $current_version"
     if [[ "$running_version" != "unknown" ]]; then
         info "Running PostgreSQL version: $running_version"
     fi
-    
+
     # Check if forced upgrade is requested
     if [[ "$FORCE_POSTGRES_UPGRADE" == "true" ]]; then
         if [[ "$NEW_POSTGRES_VERSION" != "$current_version" ]]; then
@@ -261,18 +260,18 @@ check_postgres_upgrade() {
 perform_postgres_upgrade() {
     local old_version="$1"
     local new_version="$2"
-    
+
     log "Performing PostgreSQL upgrade from $old_version to $new_version"
-    
+
     # Create backup directory
     mkdir -p "$BACKUP_DIR"
-    
+
     # Use the existing upgrade script with automation mode
     if [[ -f "$SCRIPT_DIR/upgrade-postgres.sh" ]]; then
         # Set environment variables for automated mode
         export AUTOMATED_MODE=true
         export DEPLOYMENT_MODE="$DEPLOYMENT_MODE"
-        
+
         # Run the upgrade script
         bash "$SCRIPT_DIR/upgrade-postgres.sh" "$old_version" "$new_version"
         log "PostgreSQL upgrade completed"
@@ -285,12 +284,12 @@ perform_postgres_upgrade() {
 # Build Docker image
 build_docker_image() {
     log "Building Docker image..."
-    
+
     local build_args=""
     if [[ "$VERBOSE" == "true" ]]; then
         build_args="--verbose"
     fi
-    
+
     # Change to docker-deployment directory to run the build script
     if (cd "$PROJECT_ROOT/docker-deployment" && ./run-deployment.sh build $build_args); then
         log "Docker image built successfully"
@@ -304,15 +303,15 @@ build_docker_image() {
 get_compose_files() {
     local deployment_dir="$PROJECT_ROOT/docker-deployment"
     case "$DEPLOYMENT_MODE" in
-        http)
-            echo "-f $deployment_dir/docker-compose.yml -f $deployment_dir/docker-compose.override.yml"
-            ;;
-        https)
-            echo "-f $deployment_dir/docker-compose.yml -f $deployment_dir/docker-compose.override.yml -f $deployment_dir/docker-compose.https.yml"
-            ;;
-        letsencrypt)
-            echo "-f $deployment_dir/docker-compose.letsencrypt.yml"
-            ;;
+    http)
+        echo "-f $deployment_dir/docker-compose.yml -f $deployment_dir/docker-compose.override.yml"
+        ;;
+    https)
+        echo "-f $deployment_dir/docker-compose.yml -f $deployment_dir/docker-compose.override.yml -f $deployment_dir/docker-compose.https.yml"
+        ;;
+    letsencrypt)
+        echo "-f $deployment_dir/docker-compose.letsencrypt.yml"
+        ;;
     esac
 }
 
@@ -320,59 +319,59 @@ get_compose_files() {
 update_deployment() {
     local compose_files
     compose_files=$(get_compose_files)
-    
+
     log "Updating deployment with $DOWNTIME_TOLERANCE downtime strategy..."
-    
+
     case "$DOWNTIME_TOLERANCE" in
-        zero)
-            log "Performing zero-downtime rolling update..."
-            if docker compose $compose_files up -d --force-recreate arbeitszeitapp; then
-                log "Zero-downtime update completed"
-            else
-                error "Zero-downtime update failed"
-                exit 1
-            fi
-            ;;
-        minimal)
-            log "Performing minimal-downtime update..."
-            if docker compose $compose_files up -d; then
-                log "Minimal-downtime update completed"
-            else
-                error "Minimal-downtime update failed"
-                exit 1
-            fi
-            ;;
-        full)
-            log "Performing full restart..."
-            if (cd "$PROJECT_ROOT/docker-deployment" && ./run-deployment.sh down "$DEPLOYMENT_MODE" && ./run-deployment.sh up "$DEPLOYMENT_MODE"); then
-                log "Full restart completed"
-            else
-                error "Full restart failed"
-                exit 1
-            fi
-            ;;
+    zero)
+        log "Performing zero-downtime rolling update..."
+        if docker compose "$compose_files" up -d --force-recreate arbeitszeitapp; then
+            log "Zero-downtime update completed"
+        else
+            error "Zero-downtime update failed"
+            exit 1
+        fi
+        ;;
+    minimal)
+        log "Performing minimal-downtime update..."
+        if docker compose "$compose_files" up -d; then
+            log "Minimal-downtime update completed"
+        else
+            error "Minimal-downtime update failed"
+            exit 1
+        fi
+        ;;
+    full)
+        log "Performing full restart..."
+        if (cd "$PROJECT_ROOT/docker-deployment" && ./run-deployment.sh down "$DEPLOYMENT_MODE" && ./run-deployment.sh up "$DEPLOYMENT_MODE"); then
+            log "Full restart completed"
+        else
+            error "Full restart failed"
+            exit 1
+        fi
+        ;;
     esac
 }
 
 # Verify deployment health
 verify_deployment() {
     log "Verifying deployment health..."
-    
+
     # Wait a moment for services to start
     sleep 5
-    
+
     local compose_files
     compose_files=$(get_compose_files)
-    
+
     # Check if services are running
-    if docker compose $compose_files ps | grep -q "Up"; then
+    if docker compose "$compose_files" ps | grep -q "Up"; then
         log "Services are running"
     else
         error "Some services are not running"
-        docker compose $compose_files ps
+        docker compose "$compose_files" ps
         exit 1
     fi
-    
+
     # Run health tests if available
     if [[ -f "$PROJECT_ROOT/tests/docker/test-deployments.sh" ]]; then
         info "Running deployment health tests..."
@@ -395,14 +394,14 @@ main() {
     if [[ "$FORCE_POSTGRES_UPGRADE" == "true" ]]; then
         info "  PostgreSQL Upgrade: $NEW_POSTGRES_VERSION"
     fi
-    
+
     check_prerequisites
     update_flake_inputs
     check_postgres_upgrade
     build_docker_image
     update_deployment
     verify_deployment
-    
+
     log "Deployment update completed successfully!"
     info "Summary:"
     info "  - Flake inputs: $([ "$SKIP_FLAKE_UPDATE" == "true" ] && echo "skipped" || echo "updated")"

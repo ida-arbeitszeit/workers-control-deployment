@@ -389,11 +389,11 @@ up | down)
     fi
 
     echo "[INFO] Starting arbeitszeitapp in '$MODE' mode..."
-    exec docker compose $COMPOSE_FILES up -d
+    exec docker compose "$COMPOSE_FILES" up -d
     ;;
   down)
     echo "[INFO] Stopping arbeitszeitapp in '$MODE' mode..."
-    exec docker compose $COMPOSE_FILES down
+    exec docker compose "$COMPOSE_FILES" down
     ;;
   esac
   ;;
@@ -715,7 +715,7 @@ build-multiarch)
   # Don't automatically tag latest for multiarch builds - let user decide
   if [[ "$TAG_LATEST" == "true" ]]; then
     echo "[INFO] --tag-latest requested, tagging for deployment..."
-    
+
     # Prefer current architecture for local 'latest' tag
     current_arch_built=false
     for built_arch in "${built_images[@]}"; do
@@ -724,7 +724,7 @@ build-multiarch)
         break
       fi
     done
-    
+
     if [[ "$current_arch_built" == "true" ]]; then
       echo "[INFO] Using native architecture ($current_arch) as 'latest'"
       case "$current_arch" in
@@ -776,7 +776,7 @@ build-multiarch)
       ;;
     esac
   done
-  
+
   # Show the final latest image
   if docker image inspect arbeitszeitapp:latest >/dev/null 2>&1; then
     img_arch=$(docker image inspect arbeitszeitapp:latest --format '{{.Architecture}}')
@@ -807,7 +807,7 @@ build-multiarch)
     echo "[INFO] Single-arch image created successfully"
     echo "[INFO] Built for architecture: ${built_images[*]}"
   fi
-  
+
   if [[ "$TAG_LATEST" == "true" ]]; then
     echo "[INFO] Tagged for deployment - you can now run: $0 up {mode}"
   else
@@ -816,20 +816,20 @@ build-multiarch)
   ;;
 tag-latest)
   ARCH="$ARG2"
-  
+
   if [ -z "$ARCH" ]; then
     echo "Error: Architecture required for tag-latest command."
     echo "Usage: $0 tag-latest {aarch64|x86_64}"
     exit 1
   fi
-  
+
   # Validate and normalize architecture
   case "$ARCH" in
-  aarch64|arm64)
+  aarch64 | arm64)
     DOCKER_TAG="arbeitszeitapp:latest-arm64"
     ARCH_NAME="aarch64"
     ;;
-  x86_64|amd64)
+  x86_64 | amd64)
     DOCKER_TAG="arbeitszeitapp:latest-amd64"
     ARCH_NAME="x86_64"
     ;;
@@ -838,7 +838,7 @@ tag-latest)
     exit 1
     ;;
   esac
-  
+
   # Check if the architecture-specific image exists
   if ! docker image inspect "$DOCKER_TAG" >/dev/null 2>&1; then
     echo "[ERROR] Docker image '$DOCKER_TAG' not found locally."
@@ -850,24 +850,24 @@ tag-latest)
     echo "  $0 build-multiarch"
     exit 1
   fi
-  
+
   echo "[INFO] Tagging $ARCH_NAME architecture as 'latest' for deployment..."
   docker tag "$DOCKER_TAG" arbeitszeitapp:latest
-  
+
   echo "[INFO] Successfully tagged arbeitszeitapp:latest with $ARCH_NAME architecture"
   echo "[INFO] You can now use: $0 up {http|https|letsencrypt}"
   ;;
 push-multiarch)
   REGISTRY="$ARG2"
-  
+
   if [ -z "$REGISTRY" ]; then
     echo "Error: Registry required for push-multiarch command."
     echo "Usage: $0 push-multiarch registry/image:tag"
     exit 1
   fi
-  
+
   echo "[INFO] Creating multiarch manifest and pushing to registry: $REGISTRY"
-  
+
   # Check what architecture images are available
   available_images=()
   if docker image inspect arbeitszeitapp:latest-amd64 >/dev/null 2>&1; then
@@ -876,7 +876,7 @@ push-multiarch)
   if docker image inspect arbeitszeitapp:latest-arm64 >/dev/null 2>&1; then
     available_images+=("aarch64-linux")
   fi
-  
+
   if [[ ${#available_images[@]} -eq 0 ]]; then
     echo "[ERROR] No architecture-specific images found."
     echo ""
@@ -887,9 +887,9 @@ push-multiarch)
     echo "  $0 build-multiarch"
     exit 1
   fi
-  
+
   echo "[INFO] Found images for architectures: ${available_images[*]}"
-  
+
   if [[ ${#available_images[@]} -gt 1 ]]; then
     # Push multiarch manifest to registry
     echo "[INFO] Creating multiarch manifest for registry..."
@@ -942,7 +942,7 @@ push-multiarch)
       docker tag arbeitszeitapp:latest-arm64 "$REGISTRY"
       ;;
     esac
-    
+
     echo "[INFO] Pushing single architecture image..."
     docker push "$REGISTRY"
     echo "[INFO] Successfully pushed single-arch ($single_arch) image to $REGISTRY"

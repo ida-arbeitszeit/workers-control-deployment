@@ -61,7 +61,7 @@ log "Starting PostgreSQL upgrade from version $OLD_VERSION to $NEW_VERSION"
 
 # Step 1: Backup current database
 log "Step 1: Creating database backup"
-if docker compose -f "$PROJECT_ROOT/docker-deployment/docker-compose.yml" exec db pg_dump -U arbeitszeitapp arbeitszeitapp > "$BACKUP_DIR/backup_${TIMESTAMP}.sql"; then
+if docker compose -f "$PROJECT_ROOT/docker-deployment/docker-compose.yml" exec db pg_dump -U arbeitszeitapp arbeitszeitapp >"$BACKUP_DIR/backup_${TIMESTAMP}.sql"; then
     log "Database backup created: $BACKUP_DIR/backup_${TIMESTAMP}.sql"
 else
     error "Failed to create database backup"
@@ -134,7 +134,7 @@ done
 
 # Step 7: Restore backup
 log "Step 7: Restoring database backup"
-if docker compose -f "$PROJECT_ROOT/docker-deployment/docker-compose.yml" exec -T db psql -U arbeitszeitapp -d arbeitszeitapp < "$BACKUP_DIR/backup_${TIMESTAMP}.sql"; then
+if docker compose -f "$PROJECT_ROOT/docker-deployment/docker-compose.yml" exec -T db psql -U arbeitszeitapp -d arbeitszeitapp <"$BACKUP_DIR/backup_${TIMESTAMP}.sql"; then
     log "Database backup restored successfully"
 else
     error "Failed to restore database backup"

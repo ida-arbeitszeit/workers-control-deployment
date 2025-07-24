@@ -40,7 +40,7 @@ docker compose -f ../../docker-deployment/docker-compose.letsencrypt.yml exec ng
 # Test HTTP connectivity
 echo ""
 echo "=== Testing HTTP Connectivity ==="
-if curl -f -H "Host: test.example.com" http://localhost/ > /dev/null 2>&1; then
+if curl -f -H "Host: test.example.com" http://localhost/ >/dev/null 2>&1; then
     echo "✓ HTTP connectivity successful"
 else
     echo "✗ HTTP connectivity failed"
