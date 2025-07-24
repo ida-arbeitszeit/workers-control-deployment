@@ -16,6 +16,7 @@ services:
       SERVER_NAME: ${SERVER_NAME:-localhost}
       SERVER_TYPE: ${SERVER_TYPE:-flask}
       # Mail configuration via environment variables
+      MAIL_BACKEND: ${MAIL_BACKEND:-}
       MAIL_SERVER: ${MAIL_SERVER:-}
       MAIL_PORT: ${MAIL_PORT:-587}
       MAIL_USERNAME: ${MAIL_USERNAME:-}

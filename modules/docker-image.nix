@@ -165,16 +165,28 @@ def _generate_mail_config():
     }
 
 # Apply mail configuration
-mail_config = _generate_mail_config()
-if mail_config:
-    MAIL_BACKEND = "flask_mail"
-    MAIL_SERVER = mail_config["MAIL_SERVER"]
-    MAIL_PORT = mail_config["MAIL_PORT"]
-    MAIL_USERNAME = mail_config["MAIL_USERNAME"]
-    MAIL_PASSWORD = mail_config["MAIL_PASSWORD"]
-    MAIL_DEFAULT_SENDER = mail_config["MAIL_DEFAULT_SENDER"]
-    MAIL_USE_TLS = mail_config["MAIL_USE_TLS"]
-    MAIL_USE_SSL = mail_config["MAIL_USE_SSL"]
+# Allow MAIL_BACKEND to be configured via environment variable
+# If not set or empty, DebugMailService will be used (prints emails to stdout)
+# If set to "flask_mail", SmtpMailService will be used
+mail_backend = os.environ.get("MAIL_BACKEND", "").strip()
+
+if mail_backend == "flask_mail":
+    # Only generate mail config and warnings when actually using SMTP
+    mail_config = _generate_mail_config()
+    MAIL_BACKEND = mail_backend
+    
+    if mail_config:
+        MAIL_SERVER = mail_config["MAIL_SERVER"]
+        MAIL_PORT = mail_config["MAIL_PORT"]
+        MAIL_USERNAME = mail_config["MAIL_USERNAME"]
+        MAIL_PASSWORD = mail_config["MAIL_PASSWORD"]
+        MAIL_DEFAULT_SENDER = mail_config["MAIL_DEFAULT_SENDER"]
+        MAIL_USE_TLS = mail_config["MAIL_USE_TLS"]
+        MAIL_USE_SSL = mail_config["MAIL_USE_SSL"]
+else:
+    # Using DebugMailService - do NOT set MAIL_BACKEND at all
+    # Only set MAIL_DEFAULT_SENDER for DebugMailService
+    MAIL_DEFAULT_SENDER = os.environ.get("MAIL_DEFAULT_SENDER", "noreply@localhost")
 # Generate Flask-profiler configuration on the fly
 def _generate_profiler_config():
     # Check if external profiling config file exists
