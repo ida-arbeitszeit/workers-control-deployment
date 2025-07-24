@@ -1,9 +1,7 @@
 {
   description = "Implements a module for running arbeitszeitapp";
   inputs = {
-    # TODO: Replace with GitHub URL once arbeitszeitapp is pushed to GitHub
-    # arbeitszeitapp.url = "github:ida-arbeitszeit/arbeitszeitapp";
-    arbeitszeitapp.url = "path:/Users/petscho/arbeitszeitapp";
+    arbeitszeitapp.url = "github:ida-arbeitszeit/arbeitszeitapp/addHealthCheckEndpoint";
     nixpkgs-24-11.url = "github:NixOS/nixpkgs/nixos-24.11";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";

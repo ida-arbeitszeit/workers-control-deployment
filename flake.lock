@@ -8,14 +8,18 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1753352521,
-        "narHash": "sha256-j7ESzcFSen/dNubpUBpIF+j5ZXrAr8IVGJ7TQX3KCEE=",
-        "path": "/Users/petscho/arbeitszeitapp",
-        "type": "path"
+        "lastModified": 1753280935,
+        "narHash": "sha256-ZcN++wRMwXOQw214EHO+a+vLknkexUtXiCsSNT4ITcE=",
+        "owner": "ida-arbeitszeit",
+        "repo": "arbeitszeitapp",
+        "rev": "eff74f7745090c07cfeb2410776844546cc5fbee",
+        "type": "github"
       },
       "original": {
-        "path": "/Users/petscho/arbeitszeitapp",
-        "type": "path"
+        "owner": "ida-arbeitszeit",
+        "ref": "addHealthCheckEndpoint",
+        "repo": "arbeitszeitapp",
+        "type": "github"
       }
     },
     "flake-utils": {
