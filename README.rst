@@ -68,7 +68,7 @@ The Docker deployment system includes comprehensive features for reliable deploy
   - Environment-based configuration management
 
 Docker Deployment
-----------------
+-----------------
 
 All Docker deployment scenarios are configured using a `.env` file. Before you begin, copy the example file and customize it with your settings:
 
@@ -130,6 +130,7 @@ The deployment includes two main scripts for different purposes:
    :header-rows: 1
 
    * - Aspect
+     - docker-deployment/run-deployment.sh
      - docker-deployment/maintenance/update-deployment.sh
    * - **Purpose**
      - Single deployment operations
@@ -390,12 +391,12 @@ To stop the services for any scenario, use the `down` command with the correspon
    ./run-deployment.sh down letsencrypt
 
 Docker Deployment Architecture
-=============================
+==============================
 
 The Docker deployment uses Docker Compose to orchestrate multiple services. Here's what happens behind the scenes for each deployment mode:
 
 Service Architecture
--------------------
+--------------------
 
 All deployment modes include these core services:
 
@@ -420,7 +421,7 @@ All deployment modes include these core services:
   - Configuration varies by deployment mode
 
 Deployment Mode Details
-----------------------
+-----------------------
 
 **HTTP Mode (Development)**
 

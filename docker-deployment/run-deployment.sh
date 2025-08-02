@@ -389,11 +389,11 @@ up | down)
     fi
 
     echo "[INFO] Starting arbeitszeitapp in '$MODE' mode..."
-    exec docker compose "$COMPOSE_FILES" up -d
+    exec docker compose $COMPOSE_FILES up -d
     ;;
   down)
     echo "[INFO] Stopping arbeitszeitapp in '$MODE' mode..."
-    exec docker compose "$COMPOSE_FILES" down
+    exec docker compose $COMPOSE_FILES down
     ;;
   esac
   ;;
