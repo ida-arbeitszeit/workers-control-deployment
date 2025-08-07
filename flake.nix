@@ -7,20 +7,18 @@
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs-24-11, nixpkgs-unstable, arbeitszeitapp, ... }:
-    let
-      lib = nixpkgs-unstable.lib;
-      systems = [ "x86_64-linux" "aarch64-linux" ];
-      
-      # Helper function to build Docker image for any system
-      buildDockerImage = system: import ./modules/docker-image.nix {
-        pkgs = import nixpkgs-unstable { inherit system; };
-        overlay = arbeitszeitapp.overlays.default;
-        inherit system;
-      };
-      
-      perSystem = system: let
+  outputs = { self, nixpkgs-24-11, nixpkgs-unstable, arbeitszeitapp, flake-utils, ... }:
+    flake-utils.lib.eachSystem [ "x86_64-linux" "aarch64-linux" ] (system:
+      let
         pkgs-unstable = import nixpkgs-unstable { inherit system; };
+        
+        # Helper function to build Docker image for any system
+        buildDockerImage = import ./modules/docker-image.nix {
+          pkgs = pkgs-unstable;
+          overlay = arbeitszeitapp.overlays.default;
+          inherit system;
+        };
+        
         makeSimpleTest =
           testFile: name: nixpkgs:
           nixpkgs.nixosTest {
@@ -46,6 +44,7 @@
               };
             testScript = builtins.readFile testFile;
           };
+          
         makeTestWithProfiling =
           testFile: name: nixpkgs:
           nixpkgs.nixosTest {
@@ -80,16 +79,19 @@
               };
             testScript = builtins.readFile testFile;
           };
+          
         nixpkgsVersions = {
           nixpkgs-24-11 = import nixpkgs-24-11 { inherit system; };
           nixpkgs-unstable = import nixpkgs-unstable { inherit system; };
         };
+        
         makeTestMatrix =
           testFunctions:
           builtins.foldl' (
             tests: testName:
             tests // (makeTests testFunctions."${testName}" testName (builtins.attrNames nixpkgsVersions))
           ) { } (builtins.attrNames testFunctions);
+          
         makeTests =
           testFunction: testName:
           builtins.foldl' (
@@ -101,11 +103,13 @@
                   nixpkgsVersions."${nixpkgsName}";
             }
           ) { };
+          
         testCases = {
-          lauchWebserver = makeSimpleTest tests/launchWebserver.py;
-          launchWebserverWithProfiler = makeTestWithProfiling tests/launchWebserver.py;
-          testProfiling = makeTestWithProfiling tests/testProfiling.py;
+          launchWebserver = makeSimpleTest ./tests/nix/launchWebserver.py;
+          launchWebserverWithProfiler = makeTestWithProfiling ./tests/nix/launchWebserver.py;
+          testProfiling = makeTestWithProfiling ./tests/nix/testProfiling.py;
         };
+        
         pythonEnv = pkgs-unstable.python3.withPackages (
           p: with p; [
             black
@@ -115,14 +119,22 @@
           ]
         );
       in {
-        dockerImage = buildDockerImage system;
-        devShell = pkgs-unstable.mkShell {
+        # Packages output
+        packages = {
+          dockerImage = buildDockerImage;
+          default = buildDockerImage;
+        };
+        
+        # Development shell
+        devShells.default = pkgs-unstable.mkShell {
           packages = [ pythonEnv pkgs-unstable.nixfmt-rfc-style pkgs-unstable.gh ];
         };
+        
+        # Checks (tests)
         checks = makeTestMatrix testCases;
-      };
-    in {
-      packages = lib.genAttrs systems (system: perSystem system);
+      }
+    ) // {
+      # System-independent outputs
       nixosModules.default = import modules/default.nix {
         overlay = arbeitszeitapp.overlays.default;
       };
