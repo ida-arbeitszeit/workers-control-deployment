@@ -52,7 +52,7 @@ let
   alembicFile = pkgs.writeText "alembic.ini" ''
     [alembic]
     script_location = arbeitszeit_flask:migrations
-    version_path_separator = os
+    path_separator = os
 
     [loggers]
     keys = root,sqlalchemy,alembic
