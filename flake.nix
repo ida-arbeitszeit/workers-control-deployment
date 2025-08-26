@@ -2,12 +2,12 @@
   description = "Implements a module for running arbeitszeitapp";
   inputs = {
     arbeitszeitapp.url = "github:ida-arbeitszeit/arbeitszeitapp/addHealthCheckEndpoint";
-    nixpkgs-24-11.url = "github:NixOS/nixpkgs/nixos-24.11";
+    nixpkgs-25-05.url = "github:NixOS/nixpkgs/nixos-25.05";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs-24-11, nixpkgs-unstable, arbeitszeitapp, flake-utils, ... }:
+  outputs = { self, nixpkgs-25-05, nixpkgs-unstable, arbeitszeitapp, flake-utils, ... }:
     flake-utils.lib.eachSystem [ "x86_64-linux" "aarch64-linux" ] (system:
       let
         pkgs-unstable = import nixpkgs-unstable { inherit system; };
@@ -26,6 +26,8 @@
             nodes.machine =
               { ... }:
               {
+                  virtualisation.memorySize = 2048;
+                  virtualisation.diskSize = 1024;
                 imports = [ self.nixosModules.default ];
                 nixpkgs.pkgs = nixpkgs;
                 services.arbeitszeitapp.enable = true;
@@ -81,7 +83,7 @@
           };
           
         nixpkgsVersions = {
-          nixpkgs-24-11 = import nixpkgs-24-11 { inherit system; };
+          nixpkgs-25-05 = import nixpkgs-25-05 { inherit system; };
           nixpkgs-unstable = import nixpkgs-unstable { inherit system; };
         };
         
@@ -105,7 +107,7 @@
           ) { };
           
         testCases = {
-          launchWebserver = makeSimpleTest ./tests/nix/launchWebserver.py;
+          launnchWebserver = makeSimpleTest ./tests/nix/launchWebserver.py;
           launchWebserverWithProfiler = makeTestWithProfiling ./tests/nix/launchWebserver.py;
           testProfiling = makeTestWithProfiling ./tests/nix/testProfiling.py;
         };
