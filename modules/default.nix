@@ -111,6 +111,7 @@ let
     SERVER_NAME = "${cfg.hostName}";
     AUTO_MIGRATE = True
     ALEMBIC_CONFIGURATION_FILE = "${alembicFile}"
+    DEFAULT_USER_TIMEZONE = "${cfg.defaultUserTimezone}"
     ${mailConfigSection}
     ${if cfg.profilingEnabled then profilingConfigSection else ""}
   '';
@@ -197,6 +198,15 @@ in
         Hostname where the server can be reached.
       '';
       example = "my.server.example";
+    };
+    defaultUserTimezone = lib.mkOption {
+      type = lib.types.str;
+      description = ''
+        The default timezone for users. This must be a valid timezone
+        string as found in the tz database.
+      '';
+      example = "Europe/Berlin";
+      default = "UTC";
     };
   };
   config = lib.mkIf cfg.enable {
