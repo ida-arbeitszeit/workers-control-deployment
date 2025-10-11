@@ -126,7 +126,7 @@ let
       ]))
     ];
     text = ''
-      ARBEITSZEITAPP_DATABASE_URI=${databaseUri} ALEMBIC_CONFIG=${alembicFile} alembic "$@"
+      ALEMBIC_SQLALCHEMY_DATABASE_URI=${databaseUri} ALEMBIC_CONFIG=${alembicFile} alembic "$@"
     '';
   };
 
