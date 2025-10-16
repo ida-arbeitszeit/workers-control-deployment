@@ -51,7 +51,7 @@ let
   '';
   alembicFile = pkgs.writeText "alembic.ini" ''
     [alembic]
-    script_location = arbeitszeit_flask:migrations
+    script_location = arbeitszeit_db:migrations
     path_separator = os
 
     [loggers]
