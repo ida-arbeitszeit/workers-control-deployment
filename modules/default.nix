@@ -110,7 +110,7 @@ let
     FORCE_HTTPS = False
     SERVER_NAME = "${cfg.hostName}";
     AUTO_MIGRATE = True
-    ALEMBIC_CONFIGURATION_FILE = "${alembicFile}"
+    ALEMBIC_CONFIG = "${alembicFile}"
     DEFAULT_USER_TIMEZONE = "${cfg.defaultUserTimezone}"
     ${mailConfigSection}
     ${if cfg.profilingEnabled then profilingConfigSection else ""}
