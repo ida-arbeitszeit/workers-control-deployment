@@ -9,11 +9,32 @@ The `nix flake`_ defined in this repository provides a NixOS
 module. This module allows NixOS administrators to setup a basic
 instance of the arbeitszeitapp.
 
+
+Management commands
+====================
+
+The NixOS module provides a management command, `arbeitszeitapp-manage`,
+which can be used by server admins to invite accountants to the app.
+
+```sh
+arbeitszeitapp-manage
+```
+
+It provides also access to alembic, a tool for database migrations,
+connected to arbeitszeitapp's database:
+
+```sh
+alembic-command --help
+```
+
+Tests
+=====
+
 There are some basic smoke tests included in this repository that can
 and should be executed via ``nix flake check``.
 
-Update process
-==============
+Update dependencies
+===================
 
 There is a handy python update script in this repository, "update_repository.py",
 that automatically creates a remote branch with updated flake inputs. Run 
