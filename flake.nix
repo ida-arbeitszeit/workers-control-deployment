@@ -35,13 +35,16 @@
                   services.arbeitszeitapp.hostName = "localhost";
                   services.arbeitszeitapp.enableHttps = false;
                   services.arbeitszeitapp.emailEncryptionType = null;
+                  services.arbeitszeitapp.emailPluginModule = "arbeitszeit_flask.mail_service.debug_mail_service";
+                  services.arbeitszeitapp.emailPluginClass = "DebugMailService";
                   services.arbeitszeitapp.emailConfigurationFile = nixpkgs.writeText "mailconfig.json" (
                     builtins.toJSON {
                       MAIL_SERVER = "mail.server.example";
-                      MAIL_PORT = "465";
+                      MAIL_PORT = "25";
                       MAIL_USERNAME = "mail@mail.server.example";
                       MAIL_PASSWORD = "secret password";
                       MAIL_DEFAULT_SENDER = "sender@mail.server.example";
+                      MAIL_ADMIN = "admin@mail.server.example";
                     }
                   );
                 };
@@ -62,13 +65,16 @@
                   services.arbeitszeitapp.hostName = "localhost";
                   services.arbeitszeitapp.enableHttps = false;
                   services.arbeitszeitapp.emailEncryptionType = null;
+                  services.arbeitszeitapp.emailPluginModule = "arbeitszeit_flask.mail_service.debug_mail_service";
+                  services.arbeitszeitapp.emailPluginClass = "DebugMailService";
                   services.arbeitszeitapp.emailConfigurationFile = nixpkgs.writeText "mailconfig.json" (
                     builtins.toJSON {
                       MAIL_SERVER = "mail.server.example";
-                      MAIL_PORT = "465";
+                      MAIL_PORT = "25";
                       MAIL_USERNAME = "mail@mail.server.example";
                       MAIL_PASSWORD = "secret password";
                       MAIL_DEFAULT_SENDER = "sender@mail.server.example";
+                      MAIL_ADMIN = "admin@mail.server.example";
                     }
                   );
                   services.arbeitszeitapp.profilingEnabled = true;
