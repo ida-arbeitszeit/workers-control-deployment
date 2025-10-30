@@ -40,13 +40,17 @@ let
     path = "${cfg.emailConfigurationFile}"
     with open(path) as handle:
         mail_config = json.load(handle)
-    MAIL_BACKEND = "flask_mail"
+    MAIL_PLUGIN_MODULE = "${cfg.emailPluginModule}"
+    MAIL_PLUGIN_CLASS = "${cfg.emailPluginClass}"
     MAIL_SERVER = mail_config["MAIL_SERVER"]
     MAIL_PORT = mail_config["MAIL_PORT"]
     MAIL_USERNAME = mail_config["MAIL_USERNAME"]
     MAIL_PASSWORD = mail_config["MAIL_PASSWORD"]
     MAIL_DEFAULT_SENDER = mail_config["MAIL_DEFAULT_SENDER"]
-    MAIL_USE_TLS = ${if cfg.emailEncryptionType == "tls" then "True" else "False"}
+    MAIL_ADMIN = mail_config["MAIL_ADMIN"]
+    MAIL_PLUGIN_MODULE = "${cfg.emailPluginModule}"
+    MAIL_PLUGIN_CLASS = "${cfg.emailPluginClass}"
+    MAIL_USE_TLS = ${if cfg.emailEncryptionType == "tls" then "True" else "False"}  
     MAIL_USE_SSL = ${if cfg.emailEncryptionType == "ssl" then "True" else "False"}
   '';
   alembicFile = pkgs.writeText "alembic.ini" ''
@@ -164,9 +168,27 @@ in
           "MAIL_PORT": "465",
           "MAIL_USERNAME": "username@mail.server.example",
           "MAIL_PASSWORD": "my secret mail password",
-          "MAIL_DEFAULT_SENDER": "sender.address@mail.server.example"
+          "MAIL_DEFAULT_SENDER": "sender.address@mail.server.example",
+          "MAIL_ADMIN": "admin.address@mail.server.example"
         }
       '';
+    };
+    emailPluginModule = lib.mkOption {
+      type = lib.types.str;
+      description = ''
+        This option must be a python module path to the email plugin to be used.
+        By default flask-mail is used. Other plugins can be found in the
+        ``arbeitszeit_flask/mail_service`` directory.
+      '';
+      default = "arbeitszeit_flask.mail_service.flask_mail_service";
+    };
+    emailPluginClass = lib.mkOption {
+      type = lib.types.str;
+      description = ''
+        This option must be the class name of the email service found under
+        ``MAIL_PLUGIN_MODULE``. By default ``FlaskMailService`` is used.
+      '';
+      default = "FlaskMailService";
     };
     profilingEnabled = lib.mkEnableOption "profiling for arbeitszeitapp";
     profilingCredentialsFile = lib.mkOption {

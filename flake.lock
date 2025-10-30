@@ -8,11 +8,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1761761018,
-        "narHash": "sha256-sv9F8K8pp7d0ou7SxvMSupKb7ScCxwodiwu2amcNJ/U=",
+        "lastModified": 1761779541,
+        "narHash": "sha256-+pAt1QSGpV0/0KDjElzkbVaWa6pkbJoTFKyASF88oA8=",
         "owner": "ida-arbeitszeit",
         "repo": "arbeitszeitapp",
-        "rev": "93e1b17c0d9610d09e52bb9213a1ec93cd9702a7",
+        "rev": "73e577c6e2c19c8c8b53cee4c89287eed966eec0",
         "type": "github"
       },
       "original": {
