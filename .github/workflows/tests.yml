@@ -1,0 +1,22 @@
+name: Arbeitszeitapp Deployment Tests 
+
+on:
+  push:
+    branches: [ "development" ]
+  pull_request:
+    branches: [ "development" ]
+
+permissions:
+  contents: read
+
+jobs:
+  flake-check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v5
+    - uses: cachix/install-nix-action@v31
+    - uses: cachix/cachix-action@v16
+      with:
+        name: arbeitszeit-2
+        authToken: '${{ secrets.CACHIX_AUTH_TOKEN_2 }}'
+    - run: nix flake check --print-build-logs

@@ -36,11 +36,7 @@ and should be executed via ``nix flake check``.
 Update dependencies
 ===================
 
-There is a handy python update script in this repository, "update_repository.py",
-that automatically creates a remote branch with updated flake inputs. Run 
-``python update_repository.py`` to use it.
-
-A more manual update process is as follows:
+The update process is as follows:
 
 - Make sure that you have checked out the newest version of this
   repository on your local machine.
@@ -48,6 +44,10 @@ A more manual update process is as follows:
   inputs
 - Run the tests via ``nix flake check``
 - Create a pull request on github
+
+There is a handy python update script in this repository, "update_repository.py",
+that automatically creates a remote branch with updated flake inputs. Run 
+``python update_repository.py`` to use it.
 
 
 .. _`nix flake`: https://nixos.wiki/wiki/Flakes
