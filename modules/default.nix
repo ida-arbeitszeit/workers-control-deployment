@@ -40,8 +40,6 @@ let
     path = "${cfg.emailConfigurationFile}"
     with open(path) as handle:
         mail_config = json.load(handle)
-    MAIL_PLUGIN_MODULE = "${cfg.emailPluginModule}"
-    MAIL_PLUGIN_CLASS = "${cfg.emailPluginClass}"
     MAIL_SERVER = mail_config["MAIL_SERVER"]
     MAIL_PORT = mail_config["MAIL_PORT"]
     MAIL_USERNAME = mail_config["MAIL_USERNAME"]
