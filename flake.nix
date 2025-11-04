@@ -22,7 +22,7 @@
           pkgs-unstable = import nixpkgs-unstable { inherit system; };
           makeSimpleTest =
             testFile: name: nixpkgs:
-            nixpkgs.nixosTest {
+            nixpkgs.testers.nixosTest {
               name = name;
               nodes.machine =
                 { config, ... }:
@@ -52,7 +52,7 @@
             };
           makeTestWithProfiling =
             testFile: name: nixpkgs:
-            nixpkgs.nixosTest {
+            nixpkgs.testers.nixosTest {
               name = name;
               nodes.machine =
                 { config, ... }:
