@@ -2,7 +2,7 @@
   description = "Implements a module for running arbeitszeitapp";
   inputs = {
     arbeitszeitapp.url = "github:ida-arbeitszeit/arbeitszeitapp";
-    nixpkgs-25-05.url = "github:NixOS/nixpkgs/nixos-25.05";
+    nixpkgs-25-11.url = "github:NixOS/nixpkgs/nixos-25.11";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
   };
@@ -10,7 +10,7 @@
   outputs =
     {
       self,
-      nixpkgs-25-05,
+      nixpkgs-25-11,
       nixpkgs-unstable,
       arbeitszeitapp,
       flake-utils,
@@ -88,7 +88,7 @@
               testScript = builtins.readFile testFile;
             };
           nixpkgsVersions = {
-            nixpkgs-25-05 = import nixpkgs-25-05 { inherit system; };
+            nixpkgs-25-11 = import nixpkgs-25-11 { inherit system; };
             nixpkgs-unstable = import nixpkgs-unstable { inherit system; };
           };
           makeTestMatrix =
