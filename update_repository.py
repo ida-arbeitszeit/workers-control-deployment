@@ -13,7 +13,7 @@ def main() -> None:
         github_remote = "github-temp"
         temp_repo.create_remote(
             name=github_remote,
-            url="git@github.com:ida-arbeitszeit/arbeitszeitapp-deployment.git",
+            url="git@github.com:ida-arbeitszeit/workers-control-deployment.git",
         )
         temp_repo.disable_detached_head_advice()
         temp_repo.fetch(github_remote)

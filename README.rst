@@ -1,13 +1,13 @@
-arbeitszeit deployment utilities
-================================
+workers control deployment utilities
+====================================
 
 This repository contains code to help with the deployment of the
-arbeitszeitapp. For now this is mostly limited to NixOS
+workers control app. For now this is mostly limited to NixOS
 modules.
 
 The `nix flake`_ defined in this repository provides a NixOS
 module. This module allows NixOS administrators to setup a basic
-instance of the arbeitszeitapp.
+instance of the workers control app.
 
 
 Management commands
@@ -21,7 +21,7 @@ arbeitszeitapp-manage
 ```
 
 It provides also access to alembic, a tool for database migrations,
-connected to arbeitszeitapp's database:
+connected to worker control's database:
 
 ```sh
 alembic-command --help

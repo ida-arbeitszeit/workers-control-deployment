@@ -1,7 +1,7 @@
 {
-  description = "Implements a module for running arbeitszeitapp";
+  description = "Implements a module for running workers control app";
   inputs = {
-    arbeitszeitapp.url = "github:ida-arbeitszeit/arbeitszeitapp";
+    workers-control.url = "github:ida-arbeitszeit/workers-control";
     nixpkgs-25-11.url = "github:NixOS/nixpkgs/nixos-25.11";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
@@ -12,7 +12,7 @@
       self,
       nixpkgs-25-11,
       nixpkgs-unstable,
-      arbeitszeitapp,
+      workers-control,
       flake-utils,
     }:
     let
@@ -31,13 +31,13 @@
                   virtualisation.diskSize = 1024;
                   imports = [ self.nixosModules.default ];
                   nixpkgs.pkgs = nixpkgs;
-                  services.arbeitszeitapp.enable = true;
-                  services.arbeitszeitapp.hostName = "localhost";
-                  services.arbeitszeitapp.enableHttps = false;
-                  services.arbeitszeitapp.emailEncryptionType = null;
-                  services.arbeitszeitapp.emailPluginModule = "arbeitszeit_flask.mail_service.debug_mail_service";
-                  services.arbeitszeitapp.emailPluginClass = "DebugMailService";
-                  services.arbeitszeitapp.emailConfigurationFile = nixpkgs.writeText "mailconfig.json" (
+                  services.workers-control.enable = true;
+                  services.workers-control.hostName = "localhost";
+                  services.workers-control.enableHttps = false;
+                  services.workers-control.emailEncryptionType = null;
+                  services.workers-control.emailPluginModule = "arbeitszeit_flask.mail_service.debug_mail_service";
+                  services.workers-control.emailPluginClass = "DebugMailService";
+                  services.workers-control.emailConfigurationFile = nixpkgs.writeText "mailconfig.json" (
                     builtins.toJSON {
                       MAIL_SERVER = "mail.server.example";
                       MAIL_PORT = "25";
@@ -61,13 +61,13 @@
                   virtualisation.diskSize = 1024;
                   imports = [ self.nixosModules.default ];
                   nixpkgs.pkgs = nixpkgs;
-                  services.arbeitszeitapp.enable = true;
-                  services.arbeitszeitapp.hostName = "localhost";
-                  services.arbeitszeitapp.enableHttps = false;
-                  services.arbeitszeitapp.emailEncryptionType = null;
-                  services.arbeitszeitapp.emailPluginModule = "arbeitszeit_flask.mail_service.debug_mail_service";
-                  services.arbeitszeitapp.emailPluginClass = "DebugMailService";
-                  services.arbeitszeitapp.emailConfigurationFile = nixpkgs.writeText "mailconfig.json" (
+                  services.workers-control.enable = true;
+                  services.workers-control.hostName = "localhost";
+                  services.workers-control.enableHttps = false;
+                  services.workers-control.emailEncryptionType = null;
+                  services.workers-control.emailPluginModule = "arbeitszeit_flask.mail_service.debug_mail_service";
+                  services.workers-control.emailPluginClass = "DebugMailService";
+                  services.workers-control.emailConfigurationFile = nixpkgs.writeText "mailconfig.json" (
                     builtins.toJSON {
                       MAIL_SERVER = "mail.server.example";
                       MAIL_PORT = "25";
@@ -77,8 +77,8 @@
                       MAIL_ADMIN = "admin@mail.server.example";
                     }
                   );
-                  services.arbeitszeitapp.profilingEnabled = true;
-                  services.arbeitszeitapp.profilingCredentialsFile = nixpkgs.writeText "profiling.json" (
+                  services.workers-control.profilingEnabled = true;
+                  services.workers-control.profilingCredentialsFile = nixpkgs.writeText "profiling.json" (
                     builtins.toJSON {
                       PROFILING_AUTH_USER = "testuser";
                       PROFILING_AUTH_PASSWORD = "testpassword";
@@ -138,7 +138,7 @@
       systemIndependent = {
         nixosModules = {
           default = import modules/default.nix {
-            overlay = arbeitszeitapp.overlays.default;
+            overlay = workers-control.overlays.default;
           };
         };
       };

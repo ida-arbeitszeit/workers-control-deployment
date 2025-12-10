@@ -8,7 +8,7 @@
   ...
 }:
 let
-  cfg = config.services.arbeitszeitapp;
+  cfg = config.services.workers-control;
   user = "arbeitszeitapp";
   group = "arbeitszeitapp";
   stateDirectory = "/var/lib/arbeitszeitapp";
@@ -152,9 +152,9 @@ let
   };
 in
 {
-  options.services.arbeitszeitapp = {
-    enable = lib.mkEnableOption "arbeitszeitapp";
-    enableHttps = lib.mkEnableOption "HTTPS connections to arbeitszeitapp";
+  options.services.workers-control = {
+    enable = lib.mkEnableOption "workers-control";
+    enableHttps = lib.mkEnableOption "HTTPS connections to workers-control app";
     emailConfigurationFile = lib.mkOption {
       type = lib.types.path;
       description = ''
@@ -188,7 +188,7 @@ in
       '';
       default = "FlaskMailService";
     };
-    profilingEnabled = lib.mkEnableOption "profiling for arbeitszeitapp";
+    profilingEnabled = lib.mkEnableOption "profiling for workers control app";
     profilingCredentialsFile = lib.mkOption {
       type = lib.types.path;
       description = ''
