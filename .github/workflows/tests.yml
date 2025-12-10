@@ -1,4 +1,4 @@
-name: Arbeitszeitapp Deployment Tests 
+name: Workers Control Deployment Tests 
 
 on:
   push:
