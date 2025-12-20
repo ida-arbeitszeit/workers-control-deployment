@@ -113,7 +113,6 @@ let
     FORCE_HTTPS = False
     SERVER_NAME = "${cfg.hostName}";
     AUTO_MIGRATE = True
-    ALEMBIC_CONFIG = "${alembicFile}"
     DEFAULT_USER_TIMEZONE = "${cfg.defaultUserTimezone}"
     ${mailConfigSection}
     ${if cfg.profilingEnabled then profilingConfigSection else ""}
@@ -147,6 +146,7 @@ let
       cd ${stateDirectory}
       FLASK_APP=arbeitszeit_flask.wsgi:app \
           MPLCONFIGDIR=${stateDirectory} \
+          ALEMBIC_CONFIG=${alembicFile} \
           ARBEITSZEITAPP_CONFIGURATION_PATH=${configFile} \
           flask "$@"
     '';
@@ -265,6 +265,7 @@ in
         type = "emperor";
         vassals.arbeitszeitapp = {
           env = [
+            "ALEMBIC_CONFIG=${alembicFile}"
             "ARBEITSZEITAPP_CONFIGURATION_PATH=${configFile}"
             "MPLCONFIGDIR=${stateDirectory}"
           ];
