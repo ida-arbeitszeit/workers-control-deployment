@@ -55,6 +55,7 @@ let
     [alembic]
     script_location = arbeitszeit_db:migrations
     path_separator = os
+    sqlalchemy.url = ${databaseUri}
 
     [loggers]
     keys = root,sqlalchemy,alembic
@@ -128,7 +129,7 @@ let
       ]))
     ];
     text = ''
-      ALEMBIC_SQLALCHEMY_DATABASE_URI=${databaseUri} ALEMBIC_CONFIG=${alembicFile} alembic "$@"
+      ALEMBIC_CONFIG=${alembicFile} alembic "$@"
     '';
   };
 
