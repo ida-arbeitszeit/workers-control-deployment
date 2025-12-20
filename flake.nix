@@ -127,8 +127,7 @@
             default = pkgs-unstable.mkShell {
               packages = [
                 pythonEnv
-                pkgs-unstable.nixfmt-rfc-style
-                pkgs-unstable.gh
+                pkgs-unstable.nixfmt
               ];
             };
           };
