@@ -14,24 +14,15 @@ Management commands
 ====================
 
 The NixOS module provides a management command, `arbeitszeitapp-manage`,
-which can be used by server admins to invite accountants to the app.
+which can be used by server admins to invite accountants to the app::
 
-```sh
-arbeitszeitapp-manage
-```
+  arbeitszeitapp-manage
 
 It provides also access to alembic, a tool for database migrations,
-connected to worker control's database:
+connected to worker control's database::
 
-```sh
-alembic-command --help
-```
+  alembic-command --help
 
-Tests
-=====
-
-There are some basic smoke tests included in this repository that can
-and should be executed via ``nix flake check``.
 
 Update dependencies
 ===================
@@ -45,9 +36,11 @@ The update process is as follows:
 - Run the tests via ``nix flake check``
 - Create a pull request on github
 
-There is a handy python update script in this repository, "update_repository.py",
-that automatically creates a remote branch with updated flake inputs. Run 
-``python update_repository.py`` to use it.
+There is a handy python update script in this repository
+that automatically creates a remote branch with updated flake inputs::
+
+  nix develop
+  python update_repository.py
 
 
 .. _`nix flake`: https://nixos.wiki/wiki/Flakes
