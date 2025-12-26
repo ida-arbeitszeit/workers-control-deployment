@@ -1,10 +1,6 @@
 workers control deployment utilities
 ====================================
 
-This repository contains code to help with the deployment of the
-workers control app. For now this is mostly limited to NixOS
-modules.
-
 The `nix flake`_ defined in this repository provides a NixOS
 module. This module allows NixOS administrators to setup a basic
 instance of the workers control app.
@@ -31,13 +27,15 @@ The update process is as follows:
 
 - Make sure that you have checked out the newest version of this
   repository on your local machine.
+- If there is a new version of the workers control app, update the
+  tag name in the workers control flake input in :py:mod:`flake.nix`.
 - Run ``nix flake update --commit-lock-file`` to update all the flake
   inputs
 - Run the tests via ``nix flake check``
 - Create a pull request on github
 
-There is a handy python update script in this repository
-that automatically creates a remote branch with updated flake inputs::
+There is a python script in this repository
+that creates a remote branch with updated flake inputs::
 
   nix develop
   python update_repository.py
