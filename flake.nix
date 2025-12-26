@@ -88,8 +88,8 @@
               testScript = builtins.readFile testFile;
             };
           nixpkgsVersions = {
-            nixpkgs-25-11 = import nixpkgs-25-11 { inherit system; };
-            nixpkgs-unstable = import nixpkgs-unstable { inherit system; };
+            "25-11" = import nixpkgs-25-11 { inherit system; };
+            unstable = import nixpkgs-unstable { inherit system; };
           };
           makeTestMatrix =
             testFunctions:
@@ -109,9 +109,9 @@
               }
             ) { };
           testCases = {
-            launchWebserver = makeSimpleTest tests/launchWebserver.py;
-            launchWebserverWithProfiler = makeTestWithProfiling tests/launchWebserver.py;
-            testProfiling = makeTestWithProfiling tests/testProfiling.py;
+            webserver = makeSimpleTest tests/launchWebserver.py;
+            wsProfiler = makeTestWithProfiling tests/launchWebserver.py;
+            profiling = makeTestWithProfiling tests/testProfiling.py;
           };
           pythonEnv = pkgs-unstable.python3.withPackages (
             p: with p; [
