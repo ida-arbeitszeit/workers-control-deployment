@@ -35,7 +35,7 @@
                   services.workers-control.hostName = "localhost";
                   services.workers-control.enableHttps = false;
                   services.workers-control.emailEncryptionType = null;
-                  services.workers-control.emailPluginModule = "arbeitszeit_flask.mail_service.debug_mail_service";
+                  services.workers-control.emailPluginModule = "workers_control.flask.mail_service.debug_mail_service";
                   services.workers-control.emailPluginClass = "DebugMailService";
                   services.workers-control.emailConfigurationFile = nixpkgs.writeText "mailconfig.json" (
                     builtins.toJSON {
@@ -65,7 +65,7 @@
                   services.workers-control.hostName = "localhost";
                   services.workers-control.enableHttps = false;
                   services.workers-control.emailEncryptionType = null;
-                  services.workers-control.emailPluginModule = "arbeitszeit_flask.mail_service.debug_mail_service";
+                  services.workers-control.emailPluginModule = "workers_control.flask.mail_service.debug_mail_service";
                   services.workers-control.emailPluginClass = "DebugMailService";
                   services.workers-control.emailConfigurationFile = nixpkgs.writeText "mailconfig.json" (
                     builtins.toJSON {

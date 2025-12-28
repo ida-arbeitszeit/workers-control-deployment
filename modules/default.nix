@@ -53,7 +53,7 @@ let
   '';
   alembicFile = pkgs.writeText "alembic.ini" ''
     [alembic]
-    script_location = arbeitszeit_db:migrations
+    script_location = workers_control.db:migrations
     path_separator = os
     sqlalchemy.url = ${databaseUri}
 
@@ -144,11 +144,11 @@ let
     ];
     text = ''
       cd ${stateDirectory}
-      FLASK_APP=arbeitszeit_flask.wsgi:app \
-          MPLCONFIGDIR=${stateDirectory} \
-          ALEMBIC_CONFIG=${alembicFile} \
-          ARBEITSZEITAPP_CONFIGURATION_PATH=${configFile} \
-          flask "$@"
+      FLASK_APP=workers_control.flask.wsgi:app \
+      MPLCONFIGDIR=${stateDirectory} \
+      ALEMBIC_CONFIG=${alembicFile} \
+      ARBEITSZEITAPP_CONFIGURATION_PATH=${configFile} \
+      flask "$@"
     '';
   };
 in
@@ -177,9 +177,9 @@ in
       description = ''
         This option must be a python module path to the email plugin to be used.
         By default flask-mail is used. Other plugins can be found in the
-        ``arbeitszeit_flask/mail_service`` directory.
+        ``src/workers_control/flask/mail_service`` directory.
       '';
-      default = "arbeitszeit_flask.mail_service.flask_mail_service";
+      default = "workers_control.flask.mail_service.flask_mail_service";
     };
     emailPluginClass = lib.mkOption {
       type = lib.types.str;
@@ -276,7 +276,7 @@ in
           socket = "${socketPath}";
           chmod-socket = 660;
           chown-socket = "${user}:nginx";
-          module = "arbeitszeit_flask.wsgi:app";
+          module = "workers_control.flask.wsgi:app";
           pythonPackages =
             self: with self; [
               arbeitszeitapp
