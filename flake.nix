@@ -1,7 +1,7 @@
 {
   description = "Implements a module for running workers control app";
   inputs = {
-    workers-control.url = "github:ida-arbeitszeit/workers-control?ref=v0.1.1";
+    workers-control.url = "github:ida-arbeitszeit/workers-control?ref=v0.1.2";
     nixpkgs-25-11.url = "github:NixOS/nixpkgs/nixos-25.11";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
@@ -35,7 +35,7 @@
                   services.workers-control.hostName = "localhost";
                   services.workers-control.enableHttps = false;
                   services.workers-control.emailEncryptionType = null;
-                  services.workers-control.emailPluginModule = "arbeitszeit_flask.mail_service.debug_mail_service";
+                  services.workers-control.emailPluginModule = "workers_control.flask.mail_service.debug_mail_service";
                   services.workers-control.emailPluginClass = "DebugMailService";
                   services.workers-control.emailConfigurationFile = nixpkgs.writeText "mailconfig.json" (
                     builtins.toJSON {
@@ -65,7 +65,7 @@
                   services.workers-control.hostName = "localhost";
                   services.workers-control.enableHttps = false;
                   services.workers-control.emailEncryptionType = null;
-                  services.workers-control.emailPluginModule = "arbeitszeit_flask.mail_service.debug_mail_service";
+                  services.workers-control.emailPluginModule = "workers_control.flask.mail_service.debug_mail_service";
                   services.workers-control.emailPluginClass = "DebugMailService";
                   services.workers-control.emailConfigurationFile = nixpkgs.writeText "mailconfig.json" (
                     builtins.toJSON {

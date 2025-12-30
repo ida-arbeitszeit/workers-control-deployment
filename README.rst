@@ -1,4 +1,4 @@
-workers control deployment utilities
+Workers Control deployment utilities
 ====================================
 
 The `nix flake`_ defined in this repository provides a NixOS
