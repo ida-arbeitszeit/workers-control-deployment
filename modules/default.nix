@@ -147,7 +147,7 @@ let
       FLASK_APP=workers_control.flask.wsgi:app \
       MPLCONFIGDIR=${stateDirectory} \
       ALEMBIC_CONFIG=${alembicFile} \
-      ARBEITSZEITAPP_CONFIGURATION_PATH=${configFile} \
+      WOCO_CONFIGURATION_PATH=${configFile} \
       flask "$@"
     '';
   };
@@ -266,7 +266,7 @@ in
         vassals.arbeitszeitapp = {
           env = [
             "ALEMBIC_CONFIG=${alembicFile}"
-            "ARBEITSZEITAPP_CONFIGURATION_PATH=${configFile}"
+            "WOCO_CONFIGURATION_PATH=${configFile}"
             "MPLCONFIGDIR=${stateDirectory}"
           ];
           type = "normal";
