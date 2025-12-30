@@ -124,7 +124,7 @@ let
       (pkgs.python3.withPackages (p: [
         p.alembic
         p.psycopg2
-        p.arbeitszeitapp
+        p.workers-control
       ]))
     ];
     text = ''
@@ -136,7 +136,7 @@ let
     name = "arbeitszeitapp-manage";
     runtimeInputs = [
       (pkgs.python3.withPackages (p: [
-        p.arbeitszeitapp
+        p.workers-control
         p.psycopg2
         p.flask
         p.flask-profiler
@@ -279,7 +279,7 @@ in
           module = "workers_control.flask.wsgi:app";
           pythonPackages =
             self: with self; [
-              arbeitszeitapp
+              workers-control
               psycopg2
               flask-profiler
             ];
