@@ -1,7 +1,7 @@
 {
   description = "Implements a module for running workers control app";
   inputs = {
-    workers-control.url = "github:ida-arbeitszeit/workers-control?ref=v0.1.4";
+    workers-control.url = "github:ida-arbeitszeit/workers-control";
     nixpkgs-25-11.url = "github:NixOS/nixpkgs/nixos-25.11";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
