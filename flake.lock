@@ -214,11 +214,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1768767985,
-        "narHash": "sha256-XzFSGixCTnDl+zcIrim5rOM/H0qRANJD4mtnWoe8esU=",
+        "lastModified": 1768772631,
+        "narHash": "sha256-02cY3zNN6tJycnxSQLy5aojKx3yJzI6OTQTCPTfNEF8=",
         "owner": "ida-arbeitszeit",
         "repo": "workers-control",
-        "rev": "58e2d9876f1c0f982b236e4353bebc68c164c1a9",
+        "rev": "2cadf62be57f67b88f6aa74a6bcbbb748a7692f2",
         "type": "github"
       },
       "original": {
