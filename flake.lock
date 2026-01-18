@@ -107,11 +107,11 @@
     },
     "nixpkgs-25-11": {
       "locked": {
-        "lastModified": 1768484090,
-        "narHash": "sha256-HBIfbB9MF9oqQTxs/W5440mzVaYDBWU9tuX95aZ8h64=",
+        "lastModified": 1768621446,
+        "narHash": "sha256-6YwHV1cjv6arXdF/PQc365h1j+Qje3Pydk501Rm4Q+4=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "d4fa45dc2d4d32c10cb7c6b530a6b4b7d2429442",
+        "rev": "72ac591e737060deab2b86d6952babd1f896d7c5",
         "type": "github"
       },
       "original": {
@@ -214,11 +214,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1768651455,
-        "narHash": "sha256-pCs8/DlFGMu0YJZLXp2t/OBqTHUA/GwSLbgDiDatwF0=",
+        "lastModified": 1768767985,
+        "narHash": "sha256-XzFSGixCTnDl+zcIrim5rOM/H0qRANJD4mtnWoe8esU=",
         "owner": "ida-arbeitszeit",
         "repo": "workers-control",
-        "rev": "81adefc349aa2032ab1606210d4d8c847fa16fc4",
+        "rev": "58e2d9876f1c0f982b236e4353bebc68c164c1a9",
         "type": "github"
       },
       "original": {
