@@ -46,10 +46,7 @@ let
     MAIL_PASSWORD = mail_config["MAIL_PASSWORD"]
     MAIL_DEFAULT_SENDER = mail_config["MAIL_DEFAULT_SENDER"]
     MAIL_ADMIN = mail_config["MAIL_ADMIN"]
-    MAIL_PLUGIN_MODULE = "${cfg.emailPluginModule}"
-    MAIL_PLUGIN_CLASS = "${cfg.emailPluginClass}"
-    MAIL_USE_TLS = ${if cfg.emailEncryptionType == "tls" then "True" else "False"}  
-    MAIL_USE_SSL = ${if cfg.emailEncryptionType == "ssl" then "True" else "False"}
+    MAIL_ENCRYPTION_TYPE = "${cfg.emailEncryptionType}"
   '';
   alembicFile = pkgs.writeText "alembic.ini" ''
     [alembic]
@@ -172,23 +169,6 @@ in
         }
       '';
     };
-    emailPluginModule = lib.mkOption {
-      type = lib.types.str;
-      description = ''
-        This option must be a python module path to the email plugin to be used.
-        By default flask-mail is used. Other plugins can be found in the
-        ``src/workers_control/flask/mail_service`` directory.
-      '';
-      default = "workers_control.flask.mail_service.flask_mail_service";
-    };
-    emailPluginClass = lib.mkOption {
-      type = lib.types.str;
-      description = ''
-        This option must be the class name of the email service found under
-        ``MAIL_PLUGIN_MODULE``. By default ``FlaskMailService`` is used.
-      '';
-      default = "FlaskMailService";
-    };
     profilingEnabled = lib.mkEnableOption "profiling for workers control app";
     profilingCredentialsFile = lib.mkOption {
       type = lib.types.path;
@@ -205,7 +185,6 @@ in
     };
     emailEncryptionType = lib.mkOption {
       type = lib.types.enum [
-        null
         "ssl"
         "tls"
       ];
