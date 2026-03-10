@@ -10,14 +10,10 @@ Management commands
 ====================
 
 The NixOS module provides a management command, `arbeitszeitapp-manage`,
-which can be used by server admins to invite accountants to the app::
+which can be used by server admins to invite accountants to the app
+and provides access to alembic, a tool for database migrations::
 
-  arbeitszeitapp-manage
-
-It provides also access to alembic, a tool for database migrations,
-connected to worker control's database::
-
-  alembic-command --help
+  arbeitszeitapp-manage --help
 
 
 Update dependencies
