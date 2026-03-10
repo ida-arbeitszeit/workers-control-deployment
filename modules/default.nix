@@ -48,46 +48,6 @@ let
     MAIL_ADMIN = mail_config["MAIL_ADMIN"]
     MAIL_ENCRYPTION_TYPE = "${cfg.emailEncryptionType}"
   '';
-  alembicFile = pkgs.writeText "alembic.ini" ''
-    [alembic]
-    script_location = workers_control.db:migrations
-    path_separator = os
-    sqlalchemy.url = ${databaseUri}
-
-    [loggers]
-    keys = root,sqlalchemy,alembic
-
-    [handlers]
-    keys = console
-
-    [formatters]
-    keys = generic
-
-    [logger_root]
-    level = WARN
-    handlers = console
-    qualname =
-
-    [logger_sqlalchemy]
-    level = WARN
-    handlers =
-    qualname = sqlalchemy.engine
-
-    [logger_alembic]
-    level = INFO
-    handlers =
-    qualname = alembic
-
-    [handler_console]
-    class = StreamHandler
-    args = (sys.stderr,)
-    level = NOTSET
-    formatter = generic
-
-    [formatter_generic]
-    format = %(levelname)-5.5s [%(name)s] %(message)s
-    datefmt = %H:%M:%S
-  '';
   configFile = pkgs.writeText "arbeitszeitapp.cfg" ''
     import secrets
     import json
@@ -115,20 +75,6 @@ let
     ${if cfg.profilingEnabled then profilingConfigSection else ""}
   '';
 
-  alembicCommand = pkgs.writeShellApplication {
-    name = "alembic-command";
-    runtimeInputs = [
-      (pkgs.python3.withPackages (p: [
-        p.alembic
-        p.psycopg2
-        p.workers-control
-      ]))
-    ];
-    text = ''
-      ALEMBIC_CONFIG=${alembicFile} alembic "$@"
-    '';
-  };
-
   manageCommand = pkgs.writeShellApplication {
     name = "arbeitszeitapp-manage";
     runtimeInputs = [
@@ -137,13 +83,13 @@ let
         p.psycopg2
         p.flask
         p.flask-profiler
+        p.alembic
       ]))
     ];
     text = ''
       cd ${stateDirectory}
       FLASK_APP=workers_control.flask.wsgi:app \
       MPLCONFIGDIR=${stateDirectory} \
-      ALEMBIC_CONFIG=${alembicFile} \
       WOCO_CONFIGURATION_PATH=${configFile} \
       flask "$@"
     '';
@@ -213,7 +159,6 @@ in
     nixpkgs.overlays = [ overlay ];
     environment.systemPackages = [
       manageCommand
-      alembicCommand
     ];
     services.postgresql = {
       enable = true;
@@ -244,7 +189,6 @@ in
         type = "emperor";
         vassals.arbeitszeitapp = {
           env = [
-            "ALEMBIC_CONFIG=${alembicFile}"
             "WOCO_CONFIGURATION_PATH=${configFile}"
             "MPLCONFIGDIR=${stateDirectory}"
           ];
