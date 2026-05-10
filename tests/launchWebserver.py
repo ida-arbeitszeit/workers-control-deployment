@@ -14,3 +14,6 @@ machine.succeed("sudo -u arbeitszeitapp arbeitszeitapp-manage db upgrade head")
 machine.succeed("systemctl restart uwsgi.service")
 machine.wait_for_unit("uwsgi.service")
 assert "Workers Control" in machine.succeed("curl -vLf localhost/")
+
+machine.wait_for_unit("workers-control-email-worker.service")
+machine.succeed("systemctl is-active workers-control-email-worker.service")
