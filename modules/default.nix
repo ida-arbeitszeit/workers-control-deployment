@@ -48,6 +48,13 @@ let
     MAIL_ADMIN = mail_config["MAIL_ADMIN"]
     MAIL_ENCRYPTION_TYPE = "${cfg.emailEncryptionType}"
   '';
+  pythonEnv = pkgs.python3.withPackages (p: [
+    p.workers-control
+    p.psycopg2
+    p.flask
+    p.flask-profiler
+    p.alembic
+  ]);
   configFile = pkgs.writeText "arbeitszeitapp.cfg" ''
     import secrets
     import json
@@ -69,7 +76,7 @@ let
     SQLALCHEMY_DATABASE_URI = "${databaseUri}"
     FORCE_HTTPS = False
     SERVER_NAME = "${cfg.hostName}";
-    AUTO_MIGRATE = True
+    AUTO_MIGRATE = ${if cfg.autoMigrate then "True" else "False"}
     DEFAULT_USER_TIMEZONE = "${cfg.defaultUserTimezone}"
     ${mailConfigSection}
     ${if cfg.profilingEnabled then profilingConfigSection else ""}
@@ -77,15 +84,7 @@ let
 
   manageCommand = pkgs.writeShellApplication {
     name = "arbeitszeitapp-manage";
-    runtimeInputs = [
-      (pkgs.python3.withPackages (p: [
-        p.workers-control
-        p.psycopg2
-        p.flask
-        p.flask-profiler
-        p.alembic
-      ]))
-    ];
+    runtimeInputs = [ pythonEnv ];
     text = ''
       cd ${stateDirectory}
       FLASK_APP=workers_control.flask.wsgi:app \
@@ -154,6 +153,18 @@ in
       example = "Europe/Berlin";
       default = "UTC";
     };
+    autoMigrate = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = ''
+        Whether to run database migrations automatically. When enabled, a
+        oneshot systemd service runs `arbeitszeitapp-manage db upgrade
+        head` before uwsgi and the email worker start, and AUTO_MIGRATE
+        is set to True in the application configuration. When disabled,
+        no migrations are performed automatically; operators must run
+        them via `arbeitszeitapp-manage db upgrade head`.
+      '';
+    };
   };
   config = lib.mkIf cfg.enable {
     nixpkgs.overlays = [ overlay ];
@@ -218,6 +229,48 @@ in
     systemd.services.postgresql = {
       wantedBy = [ "uwsgi.service" ];
       before = [ "uwsgi.service" ];
+    };
+    systemd.services.workers-control-migrate = lib.mkIf cfg.autoMigrate {
+      description = "Workers Control database migrations";
+      wantedBy = [
+        "uwsgi.service"
+        "workers-control-email-worker.service"
+      ];
+      before = [
+        "uwsgi.service"
+        "workers-control-email-worker.service"
+      ];
+      after = [ "postgresql.service" ];
+      requires = [ "postgresql.service" ];
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        User = user;
+        Group = group;
+        ExecStart = "${manageCommand}/bin/arbeitszeitapp-manage db upgrade head";
+      };
+    };
+    systemd.services.workers-control-email-worker = {
+      description = "Workers Control email sending worker";
+      wantedBy = [ "multi-user.target" ];
+      after = [
+        "network.target"
+        "postgresql.service"
+      ];
+      requires = [ "postgresql.service" ];
+      environment = {
+        WOCO_CONFIGURATION_PATH = "${configFile}";
+        MPLCONFIGDIR = "${stateDirectory}";
+      };
+      serviceConfig = {
+        Type = "simple";
+        User = user;
+        Group = group;
+        WorkingDirectory = stateDirectory;
+        ExecStart = "${pythonEnv}/bin/flask --app workers_control.flask.wsgi:app send-emails";
+        Restart = "on-failure";
+        RestartSec = "5s";
+      };
     };
     users = {
       users.nginx.extraGroups = [ group ];
