@@ -74,7 +74,7 @@ let
     SECRET_KEY = load_or_create("${stateDirectory}/secret_key")
     SECURITY_PASSWORD_SALT = load_or_create("${stateDirectory}/secret_key")
     SQLALCHEMY_DATABASE_URI = "${databaseUri}"
-    FORCE_HTTPS = False
+    FORCE_HTTPS = ${if cfg.enableHttps then "True" else "False"}
     SERVER_NAME = "${cfg.hostName}";
     AUTO_MIGRATE = ${if cfg.autoMigrate then "True" else "False"}
     DEFAULT_USER_TIMEZONE = "${cfg.defaultUserTimezone}"
@@ -184,8 +184,13 @@ in
     services.nginx = {
       enable = true;
       virtualHosts."${cfg.hostName}" = {
-        addSSL = cfg.enableHttps;
+        forceSSL = cfg.enableHttps;
         enableACME = cfg.enableHttps;
+        extraConfig = lib.optionalString cfg.enableHttps ''
+          add_header Strict-Transport-Security "max-age=63072000; includeSubDomains" always;
+          add_header X-Content-Type-Options "nosniff" always;
+          add_header X-Frame-Options "SAMEORIGIN" always;
+        '';
         locations."/".extraConfig = ''
           uwsgi_pass unix:${socketPath};
           uwsgi_read_timeout 300;
