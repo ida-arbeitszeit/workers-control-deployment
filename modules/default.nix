@@ -99,7 +99,7 @@ in
     enable = lib.mkEnableOption "workers-control";
     enableHttps = lib.mkEnableOption "HTTPS connections to workers-control app";
     emailConfigurationFile = lib.mkOption {
-      type = lib.types.path;
+      type = lib.types.str;
       description = ''
         Path to a json file containing the mail configuration in the
         following format:
@@ -112,11 +112,17 @@ in
           "MAIL_DEFAULT_SENDER": "sender.address@mail.server.example",
           "MAIL_ADMIN": "admin.address@mail.server.example"
         }
+
+        This must be a runtime path (e.g. "/run/secrets/mail.json"). Do NOT assign a
+        Nix path literal (e.g. ./mail.json) or the result of
+        pkgs.writeText: those expressions cause the file to be copied
+        into the world-readable Nix store. Path literals and writeText
+        are only acceptable inside test VMs.
       '';
     };
     profilingEnabled = lib.mkEnableOption "profiling for workers control app";
     profilingCredentialsFile = lib.mkOption {
-      type = lib.types.path;
+      type = lib.types.str;
       description = ''
         Path to a json file containing the profiling login credentials in
         the following format:
@@ -125,6 +131,12 @@ in
           "PROFILING_AUTH_USER": "username",
           "PROFILING_AUTH_PASSWORD": "password",
         }
+
+        This must be a runtime path (e.g.
+        "/run/secrets/profiling.json"). Do NOT assign a Nix path literal or the
+        result of pkgs.writeText: those expressions cause the file to
+        be copied into the world-readable Nix store. Path literals and
+        writeText are only acceptable inside test VMs.
       '';
       default = "/dev/null";
     };

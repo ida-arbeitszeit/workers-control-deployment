@@ -35,7 +35,7 @@
                   services.workers-control.hostName = "localhost";
                   services.workers-control.enableHttps = false;
                   services.workers-control.emailEncryptionType = "tls";
-                  services.workers-control.emailConfigurationFile = nixpkgs.writeText "mailconfig.json" (
+                  services.workers-control.emailConfigurationFile = "${nixpkgs.writeText "mailconfig.json" (
                     builtins.toJSON {
                       MAIL_SERVER = "mail.server.example";
                       MAIL_PORT = "25";
@@ -44,7 +44,7 @@
                       MAIL_DEFAULT_SENDER = "sender@mail.server.example";
                       MAIL_ADMIN = "admin@mail.server.example";
                     }
-                  );
+                  )}";
                 };
               testScript = builtins.readFile testFile;
             };
@@ -63,7 +63,7 @@
                   services.workers-control.hostName = "localhost";
                   services.workers-control.enableHttps = false;
                   services.workers-control.emailEncryptionType = "tls";
-                  services.workers-control.emailConfigurationFile = nixpkgs.writeText "mailconfig.json" (
+                  services.workers-control.emailConfigurationFile = "${nixpkgs.writeText "mailconfig.json" (
                     builtins.toJSON {
                       MAIL_SERVER = "mail.server.example";
                       MAIL_PORT = "25";
@@ -72,14 +72,14 @@
                       MAIL_DEFAULT_SENDER = "sender@mail.server.example";
                       MAIL_ADMIN = "admin@mail.server.example";
                     }
-                  );
+                  )}";
                   services.workers-control.profilingEnabled = true;
-                  services.workers-control.profilingCredentialsFile = nixpkgs.writeText "profiling.json" (
+                  services.workers-control.profilingCredentialsFile = "${nixpkgs.writeText "profiling.json" (
                     builtins.toJSON {
                       PROFILING_AUTH_USER = "testuser";
                       PROFILING_AUTH_PASSWORD = "testpassword";
                     }
-                  );
+                  )}";
                 };
               testScript = builtins.readFile testFile;
             };
