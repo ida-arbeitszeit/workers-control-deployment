@@ -72,7 +72,7 @@ let
         return result
 
     SECRET_KEY = load_or_create("${stateDirectory}/secret_key")
-    SECURITY_PASSWORD_SALT = load_or_create("${stateDirectory}/secret_key")
+    SECURITY_PASSWORD_SALT = load_or_create("${stateDirectory}/password_salt")
     SQLALCHEMY_DATABASE_URI = "${databaseUri}"
     FORCE_HTTPS = ${if cfg.enableHttps then "True" else "False"}
     SERVER_NAME = "${cfg.hostName}";
