@@ -2,7 +2,7 @@
   description = "Implements a module for running workers control app";
   inputs = {
     workers-control.url = "github:ida-arbeitszeit/workers-control";
-    nixpkgs-25-11.url = "github:NixOS/nixpkgs/nixos-25.11";
+    nixpkgs-26-05.url = "github:NixOS/nixpkgs/nixos-26.05";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
   };
@@ -10,7 +10,7 @@
   outputs =
     {
       self,
-      nixpkgs-25-11,
+      nixpkgs-26-05,
       nixpkgs-unstable,
       workers-control,
       flake-utils,
@@ -84,7 +84,7 @@
               testScript = builtins.readFile testFile;
             };
           nixpkgsVersions = {
-            "25-11" = import nixpkgs-25-11 { inherit system; };
+            "26-05" = import nixpkgs-26-05 { inherit system; };
             unstable = import nixpkgs-unstable { inherit system; };
           };
           makeTestMatrix =
