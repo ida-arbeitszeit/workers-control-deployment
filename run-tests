@@ -1,5 +1,0 @@
-#!/usr/bin/env sh
-
-set -e
-
-nix flake check -j 1 --print-build-logs
