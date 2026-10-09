@@ -83,7 +83,7 @@ let
   '';
 
   manageCommand = pkgs.writeShellApplication {
-    name = "arbeitszeitapp-manage";
+    name = "workers-control-manage";
     runtimeInputs = [ pythonEnv ];
     text = ''
       cd ${stateDirectory}
@@ -170,11 +170,11 @@ in
       default = true;
       description = ''
         Whether to run database migrations automatically. When enabled, a
-        oneshot systemd service runs `arbeitszeitapp-manage db upgrade
+        oneshot systemd service runs `workers-control-manage db upgrade
         head` before uwsgi and the email worker start, and AUTO_MIGRATE
         is set to True in the application configuration. When disabled,
         no migrations are performed automatically; operators must run
-        them via `arbeitszeitapp-manage db upgrade head`.
+        them via `workers-control-manage db upgrade head`.
       '';
     };
   };
@@ -264,7 +264,7 @@ in
         RemainAfterExit = true;
         User = user;
         Group = group;
-        ExecStart = "${manageCommand}/bin/arbeitszeitapp-manage db upgrade head";
+        ExecStart = "${lib.getExe manageCommand} db upgrade head";
       };
     };
     systemd.services.workers-control-email-worker = {
