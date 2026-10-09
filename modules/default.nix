@@ -13,8 +13,8 @@ let
   group = "arbeitszeitapp";
   stateDirectory = "/var/lib/arbeitszeitapp";
   databaseUri = "postgresql:///${user}";
-  socketDirectory = "/run/arbeitszeit";
-  socketPath = "${socketDirectory}/arbeitszeit.sock";
+  socketDirectory = "/run/workers-control";
+  socketPath = "${socketDirectory}/workers-control.sock";
   profilingConfigSection = ''
     def _make_profiler_config():
         path = "${cfg.profilingCredentialsFile}"
@@ -55,7 +55,7 @@ let
     p.flask-profiler
     p.alembic
   ]);
-  configFile = pkgs.writeText "arbeitszeitapp.cfg" ''
+  configFile = pkgs.writeText "workers-control.cfg" ''
     import secrets
     import json
     import os
@@ -215,7 +215,7 @@ in
       capabilities = [ "CAP_NET_BIND_SERVICE" ];
       instance = {
         type = "emperor";
-        vassals.arbeitszeitapp = {
+        vassals.workers-control = {
           env = [
             "WOCO_CONFIGURATION_PATH=${configFile}"
             "MPLCONFIGDIR=${stateDirectory}"
