@@ -9,11 +9,11 @@ instance of the workers control app (latest).
 Management commands
 ====================
 
-The NixOS module provides a management command, `arbeitszeitapp-manage`,
+The NixOS module provides a management command, `workers-control-manage`,
 which can be used by server admins to invite accountants to the app
 and provides access to alembic, a tool for database migrations::
 
-  arbeitszeitapp-manage --help
+  workers-control-manage --help
 
 
 Update dependencies

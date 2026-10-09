@@ -13,8 +13,8 @@ let
   group = "arbeitszeitapp";
   stateDirectory = "/var/lib/arbeitszeitapp";
   databaseUri = "postgresql:///${user}";
-  socketDirectory = "/run/arbeitszeit";
-  socketPath = "${socketDirectory}/arbeitszeit.sock";
+  socketDirectory = "/run/workers-control";
+  socketPath = "${socketDirectory}/workers-control.sock";
   profilingConfigSection = ''
     def _make_profiler_config():
         path = "${cfg.profilingCredentialsFile}"
@@ -55,7 +55,7 @@ let
     p.flask-profiler
     p.alembic
   ]);
-  configFile = pkgs.writeText "arbeitszeitapp.cfg" ''
+  configFile = pkgs.writeText "workers-control.cfg" ''
     import secrets
     import json
     import os
@@ -83,7 +83,7 @@ let
   '';
 
   manageCommand = pkgs.writeShellApplication {
-    name = "arbeitszeitapp-manage";
+    name = "workers-control-manage";
     runtimeInputs = [ pythonEnv ];
     text = ''
       cd ${stateDirectory}
@@ -170,11 +170,11 @@ in
       default = true;
       description = ''
         Whether to run database migrations automatically. When enabled, a
-        oneshot systemd service runs `arbeitszeitapp-manage db upgrade
+        oneshot systemd service runs `workers-control-manage db upgrade
         head` before uwsgi and the email worker start, and AUTO_MIGRATE
         is set to True in the application configuration. When disabled,
         no migrations are performed automatically; operators must run
-        them via `arbeitszeitapp-manage db upgrade head`.
+        them via `workers-control-manage db upgrade head`.
       '';
     };
   };
@@ -215,7 +215,7 @@ in
       capabilities = [ "CAP_NET_BIND_SERVICE" ];
       instance = {
         type = "emperor";
-        vassals.arbeitszeitapp = {
+        vassals.workers-control = {
           env = [
             "WOCO_CONFIGURATION_PATH=${configFile}"
             "MPLCONFIGDIR=${stateDirectory}"
@@ -264,7 +264,7 @@ in
         RemainAfterExit = true;
         User = user;
         Group = group;
-        ExecStart = "${manageCommand}/bin/arbeitszeitapp-manage db upgrade head";
+        ExecStart = "${lib.getExe manageCommand} db upgrade head";
       };
     };
     systemd.services.workers-control-email-worker = {
