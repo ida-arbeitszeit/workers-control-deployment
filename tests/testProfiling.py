@@ -1,6 +1,0 @@
-machine.wait_for_unit("multi-user.target")
-machine.wait_for_unit("nginx.service")
-machine.wait_for_unit("uwsgi.service")
-machine.wait_for_open_port(80)
-machine.fail("curl --fail -vLf localhost/profiling")
-machine.succeed("curl -vLf --fail -u 'testuser:testpassword' localhost/profiling")

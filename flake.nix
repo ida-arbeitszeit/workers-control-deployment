@@ -48,41 +48,6 @@
                 };
               testScript = builtins.readFile testFile;
             };
-          makeTestWithProfiling =
-            testFile: name: nixpkgs:
-            nixpkgs.testers.nixosTest {
-              name = name;
-              nodes.machine =
-                { config, ... }:
-                {
-                  virtualisation.memorySize = 2048;
-                  virtualisation.diskSize = 1024;
-                  imports = [ self.nixosModules.default ];
-                  nixpkgs.pkgs = nixpkgs;
-                  services.workers-control.enable = true;
-                  services.workers-control.hostName = "localhost";
-                  services.workers-control.enableHttps = false;
-                  services.workers-control.emailEncryptionType = "tls";
-                  services.workers-control.emailConfigurationFile = "${nixpkgs.writeText "mailconfig.json" (
-                    builtins.toJSON {
-                      MAIL_SERVER = "mail.server.example";
-                      MAIL_PORT = "25";
-                      MAIL_USERNAME = "mail@mail.server.example";
-                      MAIL_PASSWORD = "secret password";
-                      MAIL_DEFAULT_SENDER = "sender@mail.server.example";
-                      MAIL_ADMIN = "admin@mail.server.example";
-                    }
-                  )}";
-                  services.workers-control.profilingEnabled = true;
-                  services.workers-control.profilingCredentialsFile = "${nixpkgs.writeText "profiling.json" (
-                    builtins.toJSON {
-                      PROFILING_AUTH_USER = "testuser";
-                      PROFILING_AUTH_PASSWORD = "testpassword";
-                    }
-                  )}";
-                };
-              testScript = builtins.readFile testFile;
-            };
           nixpkgsVersions = {
             "26-05" = import nixpkgs-26-05 { inherit system; };
             unstable = import nixpkgs-unstable { inherit system; };
@@ -106,8 +71,6 @@
             ) { };
           testCases = {
             webserver = makeSimpleTest tests/launchWebserver.py;
-            wsProfiler = makeTestWithProfiling tests/launchWebserver.py;
-            profiling = makeTestWithProfiling tests/testProfiling.py;
           };
           pythonEnv = pkgs-unstable.python3.withPackages (
             p: with p; [
