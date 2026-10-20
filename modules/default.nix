@@ -15,27 +15,6 @@ let
   databaseUri = "postgresql:///${user}";
   socketDirectory = "/run/workers-control";
   socketPath = "${socketDirectory}/workers-control.sock";
-  profilingConfigSection = ''
-    def _make_profiler_config():
-        path = "${cfg.profilingCredentialsFile}"
-        with open(path) as handle:
-            config = json.load(handle)
-        return {
-            "enabled": True,
-            "storage": {
-                "engine": "sqlite",
-                "FILE": "${stateDirectory}/flask-profiler.db",
-            },
-            "ignore": ["^/static/.*"],
-            "endpointRoot": "profiling",
-            "basicAuth":{
-                "enabled": True,
-                "username": config['PROFILING_AUTH_USER'],
-                "password": config['PROFILING_AUTH_PASSWORD'],
-            },
-        }
-    FLASK_PROFILER = _make_profiler_config()
-  '';
   mailConfigSection = ''
     path = "${cfg.emailConfigurationFile}"
     with open(path) as handle:
@@ -52,7 +31,6 @@ let
     p.workers-control
     p.psycopg2
     p.flask
-    p.flask-profiler
     p.alembic
   ]);
   configFile = pkgs.writeText "workers-control.cfg" ''
@@ -79,7 +57,6 @@ let
     AUTO_MIGRATE = ${if cfg.autoMigrate then "True" else "False"}
     DEFAULT_USER_TIMEZONE = "${cfg.defaultUserTimezone}"
     ${mailConfigSection}
-    ${if cfg.profilingEnabled then profilingConfigSection else ""}
   '';
 
   manageCommand = pkgs.writeShellApplication {
@@ -119,26 +96,6 @@ in
         into the world-readable Nix store. Path literals and writeText
         are only acceptable inside test VMs.
       '';
-    };
-    profilingEnabled = lib.mkEnableOption "profiling for workers control app";
-    profilingCredentialsFile = lib.mkOption {
-      type = lib.types.str;
-      description = ''
-        Path to a json file containing the profiling login credentials in
-        the following format:
-
-        {
-          "PROFILING_AUTH_USER": "username",
-          "PROFILING_AUTH_PASSWORD": "password",
-        }
-
-        This must be a runtime path (e.g.
-        "/run/secrets/profiling.json"). Do NOT assign a Nix path literal or the
-        result of pkgs.writeText: those expressions cause the file to
-        be copied into the world-readable Nix store. Path literals and
-        writeText are only acceptable inside test VMs.
-      '';
-      default = "/dev/null";
     };
     emailEncryptionType = lib.mkOption {
       type = lib.types.enum [
@@ -227,7 +184,6 @@ in
             self: with self; [
               workers-control
               psycopg2
-              flask-profiler
             ];
           immediate-uid = user;
           need-app = true;
