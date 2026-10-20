@@ -198,11 +198,6 @@ in
       virtualHosts."${cfg.hostName}" = {
         forceSSL = cfg.enableHttps;
         enableACME = cfg.enableHttps;
-        extraConfig = lib.optionalString cfg.enableHttps ''
-          add_header Strict-Transport-Security "max-age=63072000; includeSubDomains" always;
-          add_header X-Content-Type-Options "nosniff" always;
-          add_header X-Frame-Options "SAMEORIGIN" always;
-        '';
         locations."/".extraConfig = ''
           uwsgi_pass unix:${socketPath};
           uwsgi_read_timeout 300;
