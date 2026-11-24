@@ -8,6 +8,13 @@ machine.wait_for_open_port(80)
 assert "Workers Control" in machine.succeed("curl -vLf localhost/")
 assert "Workers Control" in machine.succeed("curl -vLf localhost/login-member")
 machine.succeed("curl -vLf localhost/static/main.js")
+
+# Text responses must be gzip compressed by nginx
+for path in ["/", "/static/bulma.css", "/static/main.js"]:
+    headers = machine.succeed(
+        f"curl -sSfL -H 'Accept-Encoding: gzip' -o /dev/null -D - localhost{path}"
+    )
+    assert "content-encoding: gzip" in headers.lower(), headers
 machine.succeed("sudo -u arbeitszeitapp workers-control-manage db upgrade head")
 
 # Check if service still works after restarting

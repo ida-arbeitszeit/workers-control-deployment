@@ -152,6 +152,7 @@ in
     };
     services.nginx = {
       enable = true;
+      recommendedGzipSettings = true;
       virtualHosts."${cfg.hostName}" = {
         forceSSL = cfg.enableHttps;
         enableACME = cfg.enableHttps;
